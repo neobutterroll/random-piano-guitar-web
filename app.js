@@ -151,10 +151,22 @@ function updateTimer(){
   el.remaining.textContent='残り時間：'+formatRemaining(left);
   if(left<=0&&playing)stopSession('時間終了');
 }
-function setDisplay(text,instrument,status){
-  el.answer.textContent=text;
+function setDisplay(text,instrument,status,kind='normal'){
+  // Render each line separately so mobile text can be sized by its role.
+  el.answer.replaceChildren();
+  el.answer.className='answer-'+kind;
+  String(text).split('\n').forEach((line,index)=>{
+    const span=document.createElement('span');
+    span.className='answer-line answer-line-'+index;
+    span.textContent=line;
+    el.answer.appendChild(span);
+  });
   el.instrumentLabel.textContent='楽器：'+(instrumentNames[instrument]||'---');
   el.status.textContent=status||'再生中';
+}
+function setMelodyDisplay(melody,sequence,index){
+  const lines=[`キー：${D.NAMES[melody.key]} / 音階：${melody.scaleName}`,sequence,`${index+1} / ${melody.notes.length}`];
+  setDisplay(lines.join('\n'),melody.instrument,`メロディ再生中 ${index+1}/${melody.notes.length}`,'melody');
 }
 function getRangeForMelody(instrument){
   const name=el.melodyRange.value;
@@ -178,7 +190,7 @@ function generateInterval(){
   if(!semitones.length)throw new Error('選択した音域が狭すぎて音程を生成できません');
   const gap=pick(semitones),direction=pick(['上昇','下降']);
   const first=direction==='上昇'?Math.floor(Math.random()*(high-gap-low+1))+low:Math.floor(Math.random()*(high-(low+gap)+1))+low+gap;
-  return {instrument,first,second:direction==='上昇'?first+gap:first-gap,semitones:gap,direction};
+  return {instrument,first,second:direction==='上昇'?first+gap:first-gap,gap,direction};
 }
 function getGuitarVoicings(root,intervals,inversion,instrument,maxFret){
   const [low,high]=D.RANGES[instrument];
@@ -251,25 +263,27 @@ function noteSpeech(note){
   return {text,lang:japanese?'ja-JP':'en-US'};
 }
 function primeSpeechFromUserGesture(){
-  if(speechPrimed||!('speechSynthesis'in window)||!('SpeechSynthesisUtterance'in window))return;
-  // iOS Safari may block speech synthesis unless it is first activated directly
-  // inside the user's tap handler, before the asynchronous soundfont loading.
+  if(!('speechSynthesis'in window)||!('SpeechSynthesisUtterance'in window))return;
+  // Must be called synchronously from the Start button tap on iOS Safari.
+  // A nearly silent utterance activates the speech engine before soundfont fetches await.
   try{
+    const synth=window.speechSynthesis;
     const primer=new SpeechSynthesisUtterance('あ');
-    primer.lang='ja-JP';primer.volume=0;primer.rate=1;
-    speechSynthesis.cancel();
-    speechSynthesis.speak(primer);
+    primer.lang='ja-JP';primer.volume=0.01;primer.rate=1;
+    synth.cancel();
+    synth.speak(primer);
     speechPrimePromise=new Promise(resolve=>{
-      let done=false;
-      const finish=()=>{if(done)return;done=true;clearTimeout(timer);speechPrimed=true;resolve();};
+      let settled=false;
+      const finish=()=>{if(settled)return;settled=true;clearTimeout(timer);speechPrimed=true;resolve();};
       primer.onend=finish;primer.onerror=finish;
-      const timer=setTimeout(finish,1200);
+      const timer=setTimeout(finish,1800);
     });
   }catch(_){speechPrimePromise=Promise.resolve();}
 }
+
 function speak(text,lang){
   if(el.speech.value!=='on'||!text)return Promise.resolve();
-  if(!('speechSynthesis'in window)||!('SpeechSynthesisUtterance'in window))return Promise.resolve();
+  if(!('speechSynthesis'in window)||!('SpeechSynthesisUtterance'in window)){el.status.textContent='このブラウザでは音声読み上げを利用できません';return Promise.resolve();}
   return new Promise(resolve=>{
     const utterance=new SpeechSynthesisUtterance(text);
     utterance.lang=lang||'en-US';utterance.rate=Number(el.speed.value);
@@ -278,11 +292,11 @@ function speak(text,lang){
     const finish=()=>{if(settled)return;settled=true;clearTimeout(watchdog);resolve();};
     utterance.onend=finish;utterance.onerror=finish;
     watchdog=setTimeout(()=>{try{speechSynthesis.cancel();}catch(_){}finish();},30000);
-    try{speechSynthesis.resume();speechSynthesis.speak(utterance);}catch(_){finish();}
+    try{const synth=window.speechSynthesis;synth.resume();synth.speak(utterance);if(synth.paused)synth.resume();}catch(_){finish();}
   });
 }
 async function speakSingle(note){const s=noteSpeech(note);await speak(s.text,s.lang);}
-async function speakInterval(gap){await speak(D.INTERVALS[gap],'ja-JP');}
+async function speakInterval(gap){const label=D.INTERVALS[String(gap)];if(label)await speak(label,'ja-JP');}
 async function speakChord(chord){
   let text=D.ENGLISH_SPEECH_NAMES[chord.root]+' '+D.CHORD_SPEECH_EN[chord.name]+', '+D.INVERSION_SPEECH_EN[chord.inversion];
   for(const n of chord.notes){text+=', '+D.ENGLISH_SPEECH_NAMES[n%12];if(el.octave.value==='0')text+=' '+(D.OCTAVE_ENGLISH[Math.floor(n/12)-1]||String(Math.floor(n/12)-1));}
@@ -343,7 +357,8 @@ async function runChord(token){
 }
 async function runInterval(token){
   const q=generateInterval();
-  setDisplay(noteName(q.first)+' → '+noteName(q.second)+'\n'+D.INTERVALS[q.semitones]+'（'+q.direction+'）',q.instrument,'音程再生中（1音目）');
+  const intervalLabel=D.INTERVALS[String(q.gap)]||'音程不明（'+q.gap+'半音）';
+  setDisplay(noteName(q.first)+' → '+noteName(q.second)+'\n'+intervalLabel+'（'+q.direction+'）',q.instrument,'音程再生中（1音目）');
   await playFor(q.instrument,[q.first],durationSec*1000,token);
   if(token!==runToken)return;
   el.status.textContent='音程再生中（2音目）';
@@ -351,7 +366,7 @@ async function runInterval(token){
   if(token!==runToken)return;
   if(el.speech.value==='on'){
     el.status.textContent='音程名を読み上げ中';
-    await speakInterval(q.semitones);
+    await speakInterval(q.gap);
   }
   if(token===runToken)await sleep(intervalSec*1000);
 }
@@ -383,7 +398,7 @@ async function runMelody(token){
   const sequence=melody.notes.map(noteName).join(' → ');
   for(let i=0;i<melody.notes.length;i++){
     if(token!==runToken)return;
-    setDisplay('キー：'+D.NAMES[melody.key]+' / 音階：'+melody.scaleName+'\n'+sequence+'\n'+(i+1)+' / '+melody.notes.length,melody.instrument,`メロディ再生中 ${i+1}/${melody.notes.length}`);
+    setMelodyDisplay(melody,sequence,i);
     await playFor(melody.instrument,[melody.notes[i]],durationSec*1000,token);
     if(token!==runToken)return;
     if(i<melody.notes.length-1)await sleep(intervalSec*1000);
