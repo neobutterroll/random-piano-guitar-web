@@ -33,6 +33,8 @@ let activeTimers = new Set();
 let activeNotes = [];
 let previousNote = -1;
 let timerTicker = null;
+let speechPrimed = false;
+let speechPrimePromise = Promise.resolve();
 
 const pick = a => a[Math.floor(Math.random()*a.length)];
 const sleep = ms => new Promise(resolve => {
@@ -176,7 +178,7 @@ function generateInterval(){
   if(!semitones.length)throw new Error('選択した音域が狭すぎて音程を生成できません');
   const gap=pick(semitones),direction=pick(['上昇','下降']);
   const first=direction==='上昇'?Math.floor(Math.random()*(high-gap-low+1))+low:Math.floor(Math.random()*(high-(low+gap)+1))+low+gap;
-  return {instrument,first,second:direction==='上昇'?first+gap:first-gap,semitones,direction};
+  return {instrument,first,second:direction==='上昇'?first+gap:first-gap,semitones:gap,direction};
 }
 function getGuitarVoicings(root,intervals,inversion,instrument,maxFret){
   const [low,high]=D.RANGES[instrument];
@@ -248,17 +250,35 @@ function noteSpeech(note){
   if(el.octave.value==='0')text+=' '+(japanese?String(Math.floor(note/12)-1):(D.OCTAVE_ENGLISH[Math.floor(note/12)-1]||String(Math.floor(note/12)-1)));
   return {text,lang:japanese?'ja-JP':'en-US'};
 }
+function primeSpeechFromUserGesture(){
+  if(speechPrimed||!('speechSynthesis'in window)||!('SpeechSynthesisUtterance'in window))return;
+  // iOS Safari may block speech synthesis unless it is first activated directly
+  // inside the user's tap handler, before the asynchronous soundfont loading.
+  try{
+    const primer=new SpeechSynthesisUtterance('あ');
+    primer.lang='ja-JP';primer.volume=0;primer.rate=1;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(primer);
+    speechPrimePromise=new Promise(resolve=>{
+      let done=false;
+      const finish=()=>{if(done)return;done=true;clearTimeout(timer);speechPrimed=true;resolve();};
+      primer.onend=finish;primer.onerror=finish;
+      const timer=setTimeout(finish,1200);
+    });
+  }catch(_){speechPrimePromise=Promise.resolve();}
+}
 function speak(text,lang){
   if(el.speech.value!=='on'||!text)return Promise.resolve();
-  if(!('speechSynthesis'in window))return Promise.resolve();
+  if(!('speechSynthesis'in window)||!('SpeechSynthesisUtterance'in window))return Promise.resolve();
   return new Promise(resolve=>{
     const utterance=new SpeechSynthesisUtterance(text);
     utterance.lang=lang||'en-US';utterance.rate=Number(el.speed.value);
     let settled=false;
+    let watchdog;
     const finish=()=>{if(settled)return;settled=true;clearTimeout(watchdog);resolve();};
     utterance.onend=finish;utterance.onerror=finish;
-    const watchdog=setTimeout(()=>{try{speechSynthesis.cancel();}catch(_){}finish();},45000);
-    try{speechSynthesis.speak(utterance);}catch(_){finish();}
+    watchdog=setTimeout(()=>{try{speechSynthesis.cancel();}catch(_){}finish();},30000);
+    try{speechSynthesis.resume();speechSynthesis.speak(utterance);}catch(_){finish();}
   });
 }
 async function speakSingle(note){const s=noteSpeech(note);await speak(s.text,s.lang);}
@@ -404,6 +424,7 @@ function validateSettings(){
 }
 async function startSession(){
   if(playing)return;
+  if(el.speech.value==='on')primeSpeechFromUserGesture();
   let minutes,targets;
   try{
     minutes=validateSettings();
@@ -412,6 +433,7 @@ async function startSession(){
   el.start.disabled=true;el.stop.disabled=true;el.status.textContent='音源を準備しています…';
   try{
     await initializeAudio(targets);
+    if(el.speech.value==='on')await speechPrimePromise;
     if(!audioContext)throw new Error('オーディオを初期化できませんでした');
     await audioContext.resume();
     playing=true;runToken++;const token=runToken;
