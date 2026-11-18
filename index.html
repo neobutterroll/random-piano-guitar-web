@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f1f3f6">
+<title>Random Piano & Guitar 88</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="app">
+  <header><h1>🎸 Random Piano & Guitar</h1><p class="sub">音感トレーニング</p></header>
+  <section class="panel">
+    <h2>1. 楽器・トレーニングモード</h2>
+    <label>楽器<select id="instrument"><option value="ナイロン弦">ナイロンギター</option><option value="スチール弦">スチールギター</option><option value="ランダム">ランダム</option></select></label>
+    <label>トレーニングモード<select id="mode"><option value="0">単音</option><option value="1">コード</option><option value="2">音程</option><option value="3">コード進行</option><option value="4">メロディ</option></select></label>
+  </section>
+  <section class="panel" id="ordinaryRange">
+    <h2>2. 音域設定（単音・音程）</h2>
+    <label>音域<select id="range"><option value="0">全音域</option><option value="1">低音</option><option value="2">中音</option><option value="3">高音</option><option value="4">自由設定</option></select></label>
+    <div id="customRange" class="grid two hidden"><label>最低音<input id="rangeMin" value="C2"></label><label>最高音<input id="rangeMax" value="C6"></label></div>
+  </section>
+  <section class="panel hidden" id="melodySettings">
+    <h2>2. メロディモード設定</h2>
+    <label>音の選び方<select id="melodySelection"><option value="0">完全ランダム</option><option value="1">音階内ランダム</option></select></label>
+    <label>キーの設定<select id="melodyKeyMode"><option value="0">指定</option><option value="1">ランダム</option></select></label>
+    <label>キー<select id="melodyKey"></select></label>
+    <label>音階の設定<select id="melodyScaleMode"><option value="0">指定</option><option value="1">ランダム</option></select></label>
+    <label>音階の分類<select id="melodyCategory"></select></label>
+    <label>音階<select id="melodyScale"></select></label>
+    <label>音数<select id="melodyCount"><option value="0">ランダム（3〜8音）</option><option value="3">3音</option><option value="4">4音</option><option value="5">5音</option><option value="6">6音</option><option value="7">7音</option><option value="8">8音</option></select></label>
+    <label>メロディの音域<select id="melodyRange"><option>全音域</option><option>低音</option><option>中音</option><option>高音</option></select></label>
+  </section>
+  <section class="panel">
+    <h2>3. 再生設定</h2>
+    <div class="grid three"><label>再生時間（分）<input id="minutes" type="number" min="0.1" max="600" step="0.1" value="10"></label><label>音の長さ（秒）<input id="duration" type="number" min="0.05" step="0.05" value="1"></label><label>音の間隔（秒）<input id="interval" type="number" min="0" step="0.05" value="1"></label></div>
+    <label>読み上げ<select id="speech"><option value="on">ON</option><option value="off">OFF</option></select></label>
+    <label>音名の種類<select id="nameType"><option value="0">英名</option><option value="1">和名</option></select></label>
+    <label>オクターブ番号<select id="octave"><option value="0">読み上げる</option><option value="1">読み上げない</option></select></label>
+    <label>読み上げ速度 <output id="speedValue">0.35</output><input id="speed" type="range" min="0.2" max="0.8" step="0.01" value="0.35"></label>
+  </section>
+  <section class="panel" id="progressionSettings">
+    <h2>4. コード進行モード設定</h2>
+    <label>ジャンル<select id="genre"><option>すべて</option><option>J-POP</option><option>ロック</option><option>ジャズ</option><option>マイナー</option></select></label>
+    <label>キーの設定<select id="progressionKeyMode"><option value="0">ランダム</option><option value="1">指定</option></select></label>
+    <label id="progressionKeyWrap" class="hidden">指定キー<input id="progressionKey" value="C" placeholder="C / F# / Bb"></label>
+  </section>
+  <section class="panel result">
+    <div id="answer" aria-live="polite">---</div>
+    <div id="instrumentLabel">楽器：---</div>
+    <div id="status">待機中</div>
+    <div id="remaining">残り時間：--:--</div>
+    <div id="soundStatus" class="small">音源：未読み込み</div>
+    <div class="buttons"><button id="start">▶ 再生開始</button><button id="stop" disabled>■ 停止</button></div>
+  </section>
+  <footer>音源は初回再生時に読み込まれます。通信環境によって読み込みに時間がかかる場合があります。</footer>
+</main>
+<script type="module" src="app.js"></script>
+</body>
+</html>
