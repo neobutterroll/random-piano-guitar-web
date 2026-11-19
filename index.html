@@ -34,7 +34,20 @@
   <section class="panel">
     <h2>3. 再生設定</h2>
     <div class="grid three"><label>再生時間（分）<input id="minutes" type="number" min="0.1" max="600" step="0.1" value="10"></label><label>音の長さ（秒）<input id="duration" type="number" min="0.05" step="0.05" value="1"></label><label>音の間隔（秒）<input id="interval" type="number" min="0" step="0.05" value="1"></label></div>
-    <label>読み上げ<select id="speech"><option value="on">ON</option><option value="off">OFF</option></select></label>
+    <label>読み上げ全体<select id="speech"><option value="on">ON</option><option value="off">OFF</option></select></label>
+    <label class="check-row"><input id="instrumentSpeech" type="checkbox" checked> 楽器名を読み上げる</label>
+    <div class="speech-options">
+      <h3>モード別の読み上げ設定</h3>
+      <div data-speech-mode="0"><strong>単音モード</strong><label class="check-row"><input id="singleNoteSpeech" type="checkbox" checked> 音名</label></div>
+      <div data-speech-mode="1" class="hidden"><strong>コードモード</strong><label class="check-row"><input id="chordSpeech" type="checkbox" checked> コード名・構成音</label></div>
+      <div data-speech-mode="2" class="hidden"><strong>音程モード</strong><label class="check-row"><input id="intervalSpeech" type="checkbox" checked> 音程名</label></div>
+      <div data-speech-mode="3" class="hidden"><strong>コード進行モード</strong><label class="check-row"><input id="progressionSpeech" type="checkbox" checked> キー・コード進行名</label></div>
+      <div data-speech-mode="4" class="hidden"><strong>メロディモード</strong>
+        <label class="check-row"><input id="melodyKeySpeech" type="checkbox" checked> キー</label>
+        <label class="check-row"><input id="melodyNotesSpeech" type="checkbox" checked> 音名</label>
+        <label class="check-row"><input id="melodyScaleSpeech" type="checkbox" checked> 音階</label>
+      </div>
+    </div>
     <label>音名の種類<select id="nameType"><option value="0">英名</option><option value="1">和名</option></select></label>
     <label>オクターブ番号<select id="octave"><option value="0">読み上げる</option><option value="1">読み上げない</option></select></label>
     <label>読み上げ速度 <output id="speedValue">0.35</output><input id="speed" type="range" min="0.2" max="0.8" step="0.01" value="0.35"></label>

@@ -12,8 +12,11 @@ const el = {
   melodyKey:$('melodyKey'), melodyScaleMode:$('melodyScaleMode'), melodyCategory:$('melodyCategory'),
   melodyScale:$('melodyScale'), melodyCount:$('melodyCount'), melodyRange:$('melodyRange'),
   minutes:$('minutes'), duration:$('duration'), interval:$('interval'), speech:$('speech'),
+  instrumentSpeech:$('instrumentSpeech'), singleNoteSpeech:$('singleNoteSpeech'), chordSpeech:$('chordSpeech'),
+  intervalSpeech:$('intervalSpeech'), progressionSpeech:$('progressionSpeech'), melodyKeySpeech:$('melodyKeySpeech'),
+  melodyNotesSpeech:$('melodyNotesSpeech'), melodyScaleSpeech:$('melodyScaleSpeech'),
   nameType:$('nameType'), octave:$('octave'), speed:$('speed'), speedValue:$('speedValue'),
-  genre:$('genre'), progressionKeyMode:$('progressionKeyMode'), progressionKeyWrap:$('progressionKeyWrap'),
+  genre:$('genre'), progressionSettings:$('progressionSettings'), progressionKeyMode:$('progressionKeyMode'), progressionKeyWrap:$('progressionKeyWrap'),
   progressionKey:$('progressionKey'), answer:$('answer'), instrumentLabel:$('instrumentLabel'),
   status:$('status'), remaining:$('remaining'), soundStatus:$('soundStatus'), start:$('start'), stop:$('stop')
 };
@@ -35,6 +38,7 @@ let previousNote = -1;
 let timerTicker = null;
 let speechPrimed = false;
 let speechPrimePromise = Promise.resolve();
+let wakeLock = null;
 
 const pick = a => a[Math.floor(Math.random()*a.length)];
 const sleep = ms => new Promise(resolve => {
@@ -71,12 +75,20 @@ function getSelectedRange(instrument){
   if(a>b)throw new Error('指定した音域が楽器の発音可能範囲と合っていません');
   return [a,b];
 }
+function speechEnabled(control){return el.speech.value==='on' && !!control?.checked;}
+async function announceInstrument(instrument){if(speechEnabled(el.instrumentSpeech))await speak(instrumentNames[instrument]||instrument,'ja-JP');}
+async function requestWakeLock(){
+  if(!('wakeLock' in navigator))return;
+  try{wakeLock=await navigator.wakeLock.request('screen');wakeLock.addEventListener('release',()=>{wakeLock=null;});}catch(_){}
+}
+async function releaseWakeLock(){if(wakeLock){try{await wakeLock.release();}catch(_){}wakeLock=null;}}
 function updateSettingsVisibility(){
   const melody=el.mode.value==='4';
   el.melodySettings.classList.toggle('hidden',!melody);
   el.ordinaryRange.classList.toggle('hidden',melody);
   el.customRange.classList.toggle('hidden',melody || el.range.value!=='4');
   el.progressionSettings.classList.toggle('hidden',el.mode.value!=='3');
+  document.querySelectorAll('[data-speech-mode]').forEach(node=>node.classList.toggle('hidden',node.dataset.speechMode!==el.mode.value));
   el.progressionKeyWrap.classList.toggle('hidden',el.progressionKeyMode.value!=='1');
   el.melodyKey.disabled=el.melodyKeyMode.value!=='0';
   el.melodyScale.disabled=el.melodyScaleMode.value!=='0';
@@ -165,8 +177,15 @@ function setDisplay(text,instrument,status,kind='normal'){
   el.status.textContent=status||'再生中';
 }
 function setMelodyDisplay(melody,sequence,index){
-  const lines=[`キー：${D.NAMES[melody.key]} / 音階：${melody.scaleName}`,sequence,`${index+1} / ${melody.notes.length}`];
-  setDisplay(lines.join('\n'),melody.instrument,`メロディ再生中 ${index+1}/${melody.notes.length}`,'melody');
+  el.answer.replaceChildren();el.answer.className='answer-melody';
+  const addLine=(text,cls)=>{const span=document.createElement('span');span.className=cls;span.textContent=text;el.answer.appendChild(span);};
+  addLine(`キー：${D.NAMES[melody.key]} / 音階：${melody.scaleName}`,'answer-line answer-line-0');
+  const line=document.createElement('span');line.className='answer-line answer-line-1 melody-sequence';
+  melody.notes.forEach((note,i)=>{if(i){const arrow=document.createElement('span');arrow.textContent=' → ';line.appendChild(arrow);}const n=document.createElement('span');n.textContent=noteName(note);if(i===index)n.classList.add('current-note');line.appendChild(n);});
+  el.answer.appendChild(line);
+  addLine(`${index+1} / ${melody.notes.length}`,'answer-line answer-line-2');
+  el.instrumentLabel.textContent='楽器：'+(instrumentNames[melody.instrument]||'---');
+  el.status.textContent=`メロディ再生中 ${index+1}/${melody.notes.length}`;
 }
 function getRangeForMelody(instrument){
   const name=el.melodyRange.value;
@@ -310,17 +329,24 @@ async function speakProgression(progression,key){
   await speak(keyText+'。コード進行は、'+degrees+'。'+name,'ja-JP');
 }
 async function speakMelody(melody){
-  const keyName=D.ENGLISH_SPEECH_NAMES[melody.key];
-  await speak(keyName,'en-US');
-  const japanese=el.nameType.value==='1';
-  const notes=melody.notes.map(n=>{
-    const p=n%12;let t=(japanese?D.JAPANESE_SPEECH_NAMES:D.ENGLISH_SPEECH_NAMES)[p];
-    if(el.octave.value==='0')t+=' '+(japanese?String(Math.floor(n/12)-1):(D.OCTAVE_ENGLISH[Math.floor(n/12)-1]||String(Math.floor(n/12)-1)));
-    return t;
-  }).join(japanese?'、':', ');
-  await speak(notes,japanese?'ja-JP':'en-US');
-  const scaleText=(japanese?D.SCALE_JAPANESE_NAMES:D.SCALE_ENGLISH_NAMES)[melody.scaleName]||melody.scaleName;
-  await speak(scaleText,japanese?'ja-JP':'en-US');
+  if(speechEnabled(el.melodyKeySpeech)){
+    const keyName=D.ENGLISH_SPEECH_NAMES[melody.key];
+    await speak(keyName,'en-US');
+  }
+  if(speechEnabled(el.melodyNotesSpeech)){
+    const japanese=el.nameType.value==='1';
+    const notes=melody.notes.map(n=>{
+      const p=n%12;let t=(japanese?D.JAPANESE_SPEECH_NAMES:D.ENGLISH_SPEECH_NAMES)[p];
+      if(el.octave.value==='0')t+=' '+(japanese?String(Math.floor(n/12)-1):(D.OCTAVE_ENGLISH[Math.floor(n/12)-1]||String(Math.floor(n/12)-1)));
+      return t;
+    }).join(japanese?'、':', ');
+    await speak(notes,japanese?'ja-JP':'en-US');
+  }
+  if(speechEnabled(el.melodyScaleSpeech)){
+    const japanese=el.nameType.value==='1';
+    const scaleText=(japanese?D.SCALE_JAPANESE_NAMES:D.SCALE_ENGLISH_NAMES)[melody.scaleName]||melody.scaleName;
+    await speak(scaleText,japanese?'ja-JP':'en-US');
+  }
 }
 async function playFor(instrument,notes,ms,token){
   if(token!==runToken)return;
@@ -334,9 +360,11 @@ function fretText(frets){return frets.map(f=>f===null?'x':String(f)).join('-');}
 async function runSingle(token){
   const q=generateSingleNote();
   setDisplay(noteName(q.note),q.instrument,'単音再生中');
+  await announceInstrument(q.instrument);
+  if(token!==runToken)return;
   await playFor(q.instrument,[q.note],durationSec*1000,token);
   if(token!==runToken)return;
-  if(el.speech.value==='on'){
+  if(speechEnabled(el.singleNoteSpeech)){
     setDisplay(noteName(q.note),q.instrument,'音名を読み上げ中');
     await speakSingle(q.note);
   }
@@ -347,9 +375,11 @@ async function runChord(token){
   const notes=chord.notes;
   setDisplay(chordLabel(chord)+' / '+inversionName(chord.inversion)+'\n'+notes.map(noteName).join(' - '),instrument,'コード再生中');
   el.status.textContent='フォーム（6弦→1弦）：'+fretText(chord.frets);
+  await announceInstrument(instrument);
+  if(token!==runToken)return;
   await playFor(instrument,notes,durationSec*1000,token);
   if(token!==runToken)return;
-  if(el.speech.value==='on'){
+  if(speechEnabled(el.chordSpeech)){
     el.status.textContent='コード名を読み上げ中';
     await speakChord(chord);
   }
@@ -358,13 +388,17 @@ async function runChord(token){
 async function runInterval(token){
   const q=generateInterval();
   const intervalLabel=D.INTERVALS[String(q.gap)]||'音程不明（'+q.gap+'半音）';
-  setDisplay(noteName(q.first)+' → '+noteName(q.second)+'\n'+intervalLabel+'（'+q.direction+'）',q.instrument,'音程再生中（1音目）');
+  await announceInstrument(q.instrument);
+  if(token!==runToken)return;
+  setDisplay('1音目：'+noteName(q.first)+'\n'+intervalLabel+'（'+q.direction+'）',q.instrument,'音程再生中（1音目）');
   await playFor(q.instrument,[q.first],durationSec*1000,token);
   if(token!==runToken)return;
-  el.status.textContent='音程再生中（2音目）';
+  if(intervalSec>0)await sleep(intervalSec*1000);
+  if(token!==runToken)return;
+  setDisplay('2音目：'+noteName(q.second)+'\n'+intervalLabel+'（'+q.direction+'）',q.instrument,'音程再生中（2音目）');
   await playFor(q.instrument,[q.second],durationSec*1000,token);
   if(token!==runToken)return;
-  if(el.speech.value==='on'){
+  if(speechEnabled(el.intervalSpeech)){
     el.status.textContent='音程名を読み上げ中';
     await speakInterval(q.gap);
   }
@@ -378,16 +412,18 @@ async function runProgression(token){
   const progression=pick(choices);
   const key=el.progressionKeyMode.value==='0'?Math.floor(Math.random()*12):parseKeyText(el.progressionKey.value);
   const instrument=chooseInstrument();
+  await announceInstrument(instrument);
   for(let i=0;i<progression.chords.length;i++){
     if(token!==runToken)return;
     const chord=generateProgressionChord(progression.chords[i],instrument,key);
     history.push([chordLabel(chord),progression.chords[i][2]]);
-    const historyText=history.map((item,index)=>item[0]+'（'+item[1]+'）').join('　');
+    const historyText=history.map(item=>item[0]+'（'+item[1]+'）').join(' → ');
     setDisplay(D.NAMES[key]+(progression.mode==='major'?'メジャー':'マイナー')+' / '+progression.name+'\n'+historyText,instrument,`コード進行 ${i+1}/${progression.chords.length}`);
     await playFor(instrument,chord.notes,durationSec*1000,token);
+    if(i<progression.chords.length-1&&intervalSec>0)await sleep(intervalSec*1000);
   }
   if(token!==runToken)return;
-  if(el.speech.value==='on'){
+  if(speechEnabled(el.progressionSpeech)){
     el.status.textContent='コード進行を読み上げ中';
     await speakProgression(progression,key);
   }
@@ -396,18 +432,16 @@ async function runProgression(token){
 async function runMelody(token){
   const melody=generateMelody();
   const sequence=melody.notes.map(noteName).join(' → ');
+  await announceInstrument(melody.instrument);
   for(let i=0;i<melody.notes.length;i++){
     if(token!==runToken)return;
     setMelodyDisplay(melody,sequence,i);
     await playFor(melody.instrument,[melody.notes[i]],durationSec*1000,token);
     if(token!==runToken)return;
-    if(i<melody.notes.length-1)await sleep(intervalSec*1000);
+    if(i<melody.notes.length-1&&intervalSec>0)await sleep(intervalSec*1000);
   }
   if(token!==runToken)return;
-  if(el.speech.value==='on'){
-    el.status.textContent='メロディのキー・音名・音階を読み上げ中';
-    await speakMelody(melody);
-  }
+  await speakMelody(melody);
   if(token===runToken)await sleep(intervalSec*1000);
 }
 async function sessionLoop(token){
@@ -451,6 +485,7 @@ async function startSession(){
     if(el.speech.value==='on')await speechPrimePromise;
     if(!audioContext)throw new Error('オーディオを初期化できませんでした');
     await audioContext.resume();
+    await requestWakeLock();
     playing=true;runToken++;const token=runToken;
     endAt=Date.now()+minutes*60000;previousNote=-1;
     el.stop.disabled=false;el.status.textContent='トレーニング中';
@@ -469,6 +504,7 @@ function stopSession(reason='停止しました'){
   stopAllNotes();
   try{if('speechSynthesis'in window)speechSynthesis.cancel();}catch(_){}
   try{audioContext?.suspend();}catch(_){}
+  releaseWakeLock();
   el.start.disabled=false;el.stop.disabled=true;
   el.status.textContent=reason;el.remaining.textContent='残り時間：00:00';
   if(reason==='時間終了')el.answer.textContent='終了';
@@ -484,5 +520,6 @@ el.speed.addEventListener('input',()=>el.speedValue.textContent=Number(el.speed.
 el.start.addEventListener('click',startSession);
 el.stop.addEventListener('click',()=>stopSession('停止しました'));
 window.addEventListener('pagehide',()=>{stopSession('停止しました');try{audioContext?.suspend();}catch(_){}});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&playing&&!wakeLock)requestWakeLock();});
 
 populateSettings();updateSettingsVisibility();
