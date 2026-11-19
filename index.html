@@ -30,6 +30,7 @@
   <section class="panel hidden" id="melodySettings">
     <h2>3. メロディモード設定</h2>
     <label>音の選び方<select id="melodySelection"><option value="0">完全ランダム</option><option value="1">音階内ランダム</option></select></label>
+    <label>メロディの流れ<select id="melodyStyle"><option value="random">ランダム</option><option value="natural">音楽理論に沿った自然な流れ</option></select></label>
     <label>キーの設定<select id="melodyKeyMode"><option value="0">指定</option><option value="1">ランダム</option></select></label>
     <label>キー<select id="melodyKey"></select></label>
     <label>音階の設定<select id="melodyScaleMode"><option value="0">指定</option><option value="1">ランダム</option></select></label>
@@ -45,7 +46,7 @@
     <p class="small">「音と音の間隔」は音程・メロディ・コード進行の中で使い、「問題間隔」は1問が終わってから次の問題までに使います。</p>
     <label>読み上げ全体<select id="speech"><option value="on">ON</option><option value="off">OFF</option></select></label>
     <div class="speech-options"><h3>モード別・項目別の読み上げ設定</h3><p class="small">各項目のチェックで読み上げをON/OFF、日本語・Englishで読み上げ言語を選べます。音名ではオクターブ番号も個別に設定できます。</p><div id="speechModes"></div></div>
-    <label>読み上げ速度 <output id="speedValue">0.50</output><input id="speed" type="range" min="0.2" max="1.2" step="0.05" value="0.5"></label>
+    <label>読み上げ速度 <output id="speedValue">0.50</output><input id="speed" type="range" min="0.1" max="2.0" step="0.05" value="0.5"></label>
   </section>
   <section class="panel result">
     <div id="answer" aria-live="polite">音源を読み込んでいます</div><div id="instrumentLabel">楽器：---</div><div id="status">準備中</div><div id="remaining">残り時間：--:--</div>
