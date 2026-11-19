@@ -9,19 +9,39 @@
 </head>
 <body>
 <main class="app">
-  <header><h1>🎸 Random Piano & Guitar</h1><p class="sub">音感トレーニング</p></header>
+  <header><h1>🎹 Random Piano & Guitar</h1><p class="sub">音感トレーニング</p></header>
   <section class="panel">
     <h2>1. 楽器・トレーニングモード</h2>
-    <label>楽器<select id="instrument"><option value="ナイロン弦">ナイロンギター</option><option value="スチール弦">スチールギター</option><option value="ランダム">ランダム</option></select></label>
+    <label>楽器・カテゴリー<select id="instrument">
+      <option value="ランダム">全楽器からランダム</option>
+      <optgroup label="カテゴリーからランダム">
+        <option value="category:鍵盤楽器">鍵盤楽器からランダム</option>
+        <option value="category:ギター・ベース">ギター・ベースからランダム</option>
+        <option value="category:弦楽器">弦楽器からランダム</option>
+        <option value="category:木管楽器">木管楽器からランダム</option>
+        <option value="category:金管楽器">金管楽器からランダム</option>
+      </optgroup>
+      <optgroup label="鍵盤楽器"><option value="ピアノ">ピアノ</option><option value="エレクトリックピアノ">エレクトリックピアノ</option><option value="オルガン">オルガン</option><option value="シンセサイザー">シンセサイザー</option></optgroup>
+      <optgroup label="ギター・ベース"><option value="ナイロン弦">ナイロンギター</option><option value="スチール弦">スチールギター</option><option value="エレキギター">エレキギター</option><option value="エレキベース">エレキベース</option><option value="ウッドベース">ウッドベース</option></optgroup>
+      <optgroup label="弦楽器"><option value="バイオリン">バイオリン</option><option value="ビオラ">ビオラ</option><option value="チェロ">チェロ</option><option value="コントラバス">コントラバス</option></optgroup>
+      <optgroup label="木管楽器"><option value="フルート">フルート</option><option value="オーボエ">オーボエ</option><option value="クラリネット">クラリネット</option><option value="サックス">サックス</option></optgroup>
+      <optgroup label="金管楽器"><option value="トランペット">トランペット</option><option value="ホルン">ホルン</option><option value="トロンボーン">トロンボーン</option><option value="チューバ">チューバ</option></optgroup>
+    </select></label>
     <label>トレーニングモード<select id="mode"><option value="0">単音</option><option value="1">コード</option><option value="2">音程</option><option value="3">コード進行</option><option value="4">メロディ</option></select></label>
   </section>
+  <section class="panel hidden" id="progressionSettings">
+    <h2>2. コード進行モード設定</h2>
+    <label>ジャンル<select id="genre"><option>すべて</option><option>J-POP</option><option>ロック</option><option>ジャズ</option><option>マイナー</option></select></label>
+    <label>キーの設定<select id="progressionKeyMode"><option value="0">ランダム</option><option value="1">指定</option></select></label>
+    <label id="progressionKeyWrap" class="hidden">指定キー<input id="progressionKey" value="C" placeholder="C / F# / Bb"></label>
+  </section>
   <section class="panel" id="ordinaryRange">
-    <h2>2. 音域設定（単音・音程）</h2>
+    <h2>3. 音域設定（単音・音程）</h2>
     <label>音域<select id="range"><option value="0">全音域</option><option value="1">低音</option><option value="2">中音</option><option value="3">高音</option><option value="4">自由設定</option></select></label>
     <div id="customRange" class="grid two hidden"><label>最低音<input id="rangeMin" value="C2"></label><label>最高音<input id="rangeMax" value="C6"></label></div>
   </section>
   <section class="panel hidden" id="melodySettings">
-    <h2>2. メロディモード設定</h2>
+    <h2>3. メロディモード設定</h2>
     <label>音の選び方<select id="melodySelection"><option value="0">完全ランダム</option><option value="1">音階内ランダム</option></select></label>
     <label>キーの設定<select id="melodyKeyMode"><option value="0">指定</option><option value="1">ランダム</option></select></label>
     <label>キー<select id="melodyKey"></select></label>
@@ -32,41 +52,25 @@
     <label>メロディの音域<select id="melodyRange"><option>全音域</option><option>低音</option><option>中音</option><option>高音</option></select></label>
   </section>
   <section class="panel">
-    <h2>3. 再生設定</h2>
+    <h2>4. 再生・読み上げ設定</h2>
     <div class="grid three"><label>再生時間（分）<input id="minutes" type="number" min="0.1" max="600" step="0.1" value="10"></label><label>音の長さ（秒）<input id="duration" type="number" min="0.05" step="0.05" value="1"></label><label>音の間隔（秒）<input id="interval" type="number" min="0" step="0.05" value="1"></label></div>
     <label>読み上げ全体<select id="speech"><option value="on">ON</option><option value="off">OFF</option></select></label>
-    <label class="check-row"><input id="instrumentSpeech" type="checkbox" checked> 楽器名を読み上げる</label>
-    <div class="speech-options">
-      <h3>モード別の読み上げ設定</h3>
-      <div data-speech-mode="0"><strong>単音モード</strong><label class="check-row"><input id="singleNoteSpeech" type="checkbox" checked> 音名</label></div>
-      <div data-speech-mode="1" class="hidden"><strong>コードモード</strong><label class="check-row"><input id="chordSpeech" type="checkbox" checked> コード名・構成音</label></div>
-      <div data-speech-mode="2" class="hidden"><strong>音程モード</strong><label class="check-row"><input id="intervalSpeech" type="checkbox" checked> 音程名</label></div>
-      <div data-speech-mode="3" class="hidden"><strong>コード進行モード</strong><label class="check-row"><input id="progressionSpeech" type="checkbox" checked> キー・コード進行名</label></div>
-      <div data-speech-mode="4" class="hidden"><strong>メロディモード</strong>
-        <label class="check-row"><input id="melodyKeySpeech" type="checkbox" checked> キー</label>
-        <label class="check-row"><input id="melodyNotesSpeech" type="checkbox" checked> 音名</label>
-        <label class="check-row"><input id="melodyScaleSpeech" type="checkbox" checked> 音階</label>
-      </div>
+    <div class="speech-options"><h3>モード別の読み上げ設定</h3>
+      <div data-speech-mode="0"><strong>単音モード</strong><label class="check-row"><input id="speech-0-key" type="checkbox" disabled> 調・音階</label><label class="check-row"><input id="speech-0-notes" type="checkbox" checked> 音名</label><label class="check-row"><input id="speech-0-info" type="checkbox" disabled> 音程・コードなどの情報</label><label class="check-row"><input id="speech-0-instrument" type="checkbox" checked> 楽器名</label></div>
+      <div data-speech-mode="1" class="hidden"><strong>コードモード</strong><label class="check-row"><input id="speech-1-key" type="checkbox" disabled> 調・音階</label><label class="check-row"><input id="speech-1-notes" type="checkbox" checked> 音名（構成音）</label><label class="check-row"><input id="speech-1-info" type="checkbox" checked> コード情報</label><label class="check-row"><input id="speech-1-instrument" type="checkbox" checked> 楽器名</label></div>
+      <div data-speech-mode="2" class="hidden"><strong>音程モード</strong><label class="check-row"><input id="speech-2-key" type="checkbox" disabled> 調・音階</label><label class="check-row"><input id="speech-2-notes" type="checkbox" checked> 音名（1音目・2音目）</label><label class="check-row"><input id="speech-2-info" type="checkbox" checked> 音程名</label><label class="check-row"><input id="speech-2-instrument" type="checkbox" checked> 楽器名</label></div>
+      <div data-speech-mode="3" class="hidden"><strong>コード進行モード</strong><label class="check-row"><input id="speech-3-key" type="checkbox" checked> 調・音階（キー）</label><label class="check-row"><input id="speech-3-notes" type="checkbox"> 音名（コード構成音）</label><label class="check-row"><input id="speech-3-info" type="checkbox" checked> コード・進行情報</label><label class="check-row"><input id="speech-3-instrument" type="checkbox" checked> 楽器名</label></div>
+      <div data-speech-mode="4" class="hidden"><strong>メロディモード</strong><label class="check-row"><input id="speech-4-key" type="checkbox" checked> 調・音階</label><label class="check-row"><input id="speech-4-notes" type="checkbox"> 音名（各音）</label><label class="check-row"><input id="speech-4-info" type="checkbox" disabled> 音程・コードなどの情報</label><label class="check-row"><input id="speech-4-instrument" type="checkbox" checked> 楽器名</label></div>
     </div>
     <label>音名の種類<select id="nameType"><option value="0">英名</option><option value="1">和名</option></select></label>
     <label>オクターブ番号<select id="octave"><option value="0">読み上げる</option><option value="1">読み上げない</option></select></label>
     <label>読み上げ速度 <output id="speedValue">0.35</output><input id="speed" type="range" min="0.2" max="0.8" step="0.01" value="0.35"></label>
   </section>
-  <section class="panel" id="progressionSettings">
-    <h2>4. コード進行モード設定</h2>
-    <label>ジャンル<select id="genre"><option>すべて</option><option>J-POP</option><option>ロック</option><option>ジャズ</option><option>マイナー</option></select></label>
-    <label>キーの設定<select id="progressionKeyMode"><option value="0">ランダム</option><option value="1">指定</option></select></label>
-    <label id="progressionKeyWrap" class="hidden">指定キー<input id="progressionKey" value="C" placeholder="C / F# / Bb"></label>
-  </section>
   <section class="panel result">
-    <div id="answer" aria-live="polite">---</div>
-    <div id="instrumentLabel">楽器：---</div>
-    <div id="status">待機中</div>
-    <div id="remaining">残り時間：--:--</div>
-    <div id="soundStatus" class="small">音源：未読み込み</div>
+    <div id="answer" aria-live="polite">---</div><div id="instrumentLabel">楽器：---</div><div id="status">待機中</div><div id="remaining">残り時間：--:--</div><div id="soundStatus" class="small">音源：未読み込み</div>
     <div class="buttons"><button id="start">▶ 再生開始</button><button id="stop" disabled>■ 停止</button></div>
   </section>
-  <footer>音源は初回再生時に読み込まれます。通信環境によって読み込みに時間がかかる場合があります。</footer>
+  <footer>音源ファイルは assets フォルダ内に配置してください。初回使用時に読み込まれます。</footer>
 </main>
 <script type="module" src="app.js"></script>
 </body>
