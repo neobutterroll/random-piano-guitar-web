@@ -106,10 +106,14 @@ function noteSpeech(note,mode){const lang=speechLang(mode,'notes'),pitch=note%12
 function speak(text,lang='ja-JP'){if(el.speech.value!=='on'||!text)return Promise.resolve();if(!('speechSynthesis'in window)||!('SpeechSynthesisUtterance'in window))return Promise.resolve();return new Promise(resolve=>{const u=new SpeechSynthesisUtterance(text);u.lang=lang;u.rate=Number(el.speed.value);u.volume=Number(el.speechVolume.value)/100;let done=false;let watchdog;const finish=()=>{if(done)return;done=true;clearTimeout(watchdog);resolve();};u.onend=finish;u.onerror=finish;watchdog=setTimeout(()=>{try{speechSynthesis.cancel();}catch(_){}finish();},20000);try{speechSynthesis.resume();speechSynthesis.speak(u);}catch(_){finish();}});}
 async function speakPart(mode,part,text){if(speechEnabled(mode,part))await speak(text,speechLang(mode,part));}
 async function speakInstrument(inst,mode){const ja=inst.nameJa||inst.name;const isJapanese=/[ぁ-んァ-ヶ一-龠]/.test(ja||'');const name=isJapanese?ja:(inst.presetName||inst.name||ja);await speakPart(mode,'instrument',name);}
-async function speakNotes(notes,mode){if(!speechEnabled(mode,'notes'))return;for(const n of notes){const s=noteSpeech(n,mode);if(s.octave!==null&&Number(el.octaveGap.value)===0){const prefix=s.lang==='en-US'?({4:'E',5:'F',9:'A'}[n%12]||D.NAMES[n%12]):s.text;await speak(`${prefix} ${s.octave}`,s.lang==='en-US'?'en-US':'ja-JP');}else{await speakPitch(n%12,s.lang);if(s.octave!==null){await sleep(Number(el.octaveGap.value)*1000);await speak(s.octave,'en-US');}}}}
-function intervalName(semitones,lang){const ja=(D.INTERVALS[String(semitones)]||`${semitones}半音`).replace(/^短/,'たん').replace(/^長/,'ちょう').replace(/^完全/,'かんぜん');const en={1:'minor second',2:'major second',3:'minor third',4:'major third',5:'perfect fourth',6:'tritone',7:'perfect fifth',8:'minor sixth',9:'major sixth',10:'minor seventh',11:'major seventh',12:'perfect octave'}[semitones]||`${semitones} semitones`;return lang==='en-US'?en:ja;}
+async function speakNotes(notes,mode){if(!speechEnabled(mode,'notes'))return;for(const n of notes){const spec=noteSpeech(n,mode);const gap=Number(el.octaveGap.value);if(spec.octave!==null&&gap===0){ // One utterance avoids an artificial pause between pitch and octave.
+ const pitch=n%12;const combined=spec.lang==='en-US'?`${D.NAMES[pitch]}${spec.octave}`:`${spec.text}${spec.octave}`;
+ await speak(combined,spec.lang);
+ }else{await speakPitch(n%12,spec.lang);if(spec.octave!==null){await sleep(gap*1000);await speak(spec.octave,'en-US');}}}}
+
+function intervalName(semitones,lang){const ja=(D.INTERVALS[String(semitones)]||`${semitones}半音`).replace(/^短/,'たん').replace(/^長/,'ちょう').replace(/^完全/,'かんぜん').replace(/^増/,'ぞう').replace(/^減/,'げん').replace(/度/g,'ど').replace(/2/g,'に').replace(/3/g,'さん').replace(/4/g,'よん').replace(/5/g,'ご').replace(/6/g,'ろく').replace(/7/g,'なな').replace(/8/g,'はち');const en={1:'minor second',2:'major second',3:'minor third',4:'major third',5:'perfect fourth',6:'tritone',7:'perfect fifth',8:'minor sixth',9:'major sixth',10:'minor seventh',11:'major seventh',12:'perfect octave'}[semitones]||`${semitones} semitones`;return lang==='en-US'?en:ja;}
 function chordLabel(chord){return D.NAMES[chord.root%12]+(D.CHORD_DISPLAY_NAMES[chord.name]||chord.name);}
-function chordEnglish(chord){const quality={Major:'major',Minor:'minor',aug:'augmented',sus4:'suspended fourth','7th':'dominant seventh',Major7:'major seventh',Minor7:'minor seventh',dim:'diminished',HalfDim7:'half-diminished seventh'}[chord.name]||chord.name;return `${pitchText(chord.root,'en-US')} ${quality}`;}
+function chordEnglish(chord){const quality={Major:'major',Minor:'minor',aug:'augmented',sus4:'sus four','7th':'seven',Major7:'major seven',Minor7:'minor seven',dim:'diminished',HalfDim7:'minor seven flat five'}[chord.name]||chord.name;return `${pitchText(chord.root,'en-US')} ${quality}`;}
 function chordJapanese(chord) {
     const quality = {
         Major: "メジャー",
@@ -193,8 +197,10 @@ async function runProgression(token){
     for(const chord of chords){
       const degree=chord.degree.replace(/[♭♯]/g,'').replace(/[^IViv]/g,'').toUpperCase();
       const number={I:1,II:2,III:3,IV:4,V:5,VI:6,VII:7}[degree];
-      const prefix=chord.degree.includes('♭')?(lang==='en-US'?'flat ':'フラット'):chord.degree.includes('♯')?(lang==='en-US'?'sharp ':'シャープ'):'';
-      const text=lang==='en-US'?prefix+(['','one','two','three','four','five','six','seven'][number]||chord.degree):prefix+(['','いち','に','さん','よん','ご','ろく','なな'][number]||chord.spoken||chord.degree);
+      const prefix=chord.degree.startsWith('♭')?(lang==='en-US'?'flat ':'フラット'):chord.degree.includes('♯')?(lang==='en-US'?'sharp ':'シャープ'):'';
+      const numeral=lang==='en-US'?(['','one','two','three','four','five','six','seven'][number]||chord.degree):(['','いち','に','さん','よん','ご','ろく','なな'][number]||chord.spoken||chord.degree);
+      const quality=chord.degree.includes('m7♭5')?(lang==='en-US'?' minor seven flat five':'マイナーセブンフラットファイブ'):chord.degree.includes('maj7')?(lang==='en-US'?' major seven':'メジャーセブン'):chord.degree.includes('m7')?(lang==='en-US'?' minor seven':'マイナーセブン'):chord.degree.includes('7')?(lang==='en-US'?' seven':'セブン'):(chord.degree.endsWith('m')||(/^[iv]+$/.test(chord.degree)))?(lang==='en-US'?' minor':'マイナー'):'';
+      const text=prefix+numeral+quality;
       await speak(text,lang);
     }
   }
