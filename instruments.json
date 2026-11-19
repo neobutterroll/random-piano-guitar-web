@@ -1,0 +1,2822 @@
+[
+  {
+    "id": "0:0",
+    "name": "グランドピアノ",
+    "nameJa": "グランドピアノ",
+    "presetName": "Grand Piano",
+    "bank": 0,
+    "program": 0,
+    "category": "鍵盤楽器",
+    "range": [
+      21,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:1",
+    "name": "ブライトピアノ",
+    "nameJa": "ブライトピアノ",
+    "presetName": "Bright Grand Piano",
+    "bank": 0,
+    "program": 1,
+    "category": "鍵盤楽器",
+    "range": [
+      21,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:2",
+    "name": "エレクトリックグランド",
+    "nameJa": "エレクトリックグランド",
+    "presetName": "Electric Grand Piano",
+    "bank": 0,
+    "program": 2,
+    "category": "鍵盤楽器",
+    "range": [
+      21,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:3",
+    "name": "ホンキートンクピアノ",
+    "nameJa": "ホンキートンクピアノ",
+    "presetName": "Honky-Tonk Piano",
+    "bank": 0,
+    "program": 3,
+    "category": "鍵盤楽器",
+    "range": [
+      21,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:4",
+    "name": "エレクトリックピアノ",
+    "nameJa": "エレクトリックピアノ",
+    "presetName": "Tine Electric Piano",
+    "bank": 0,
+    "program": 4,
+    "category": "鍵盤楽器",
+    "range": [
+      21,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:5",
+    "name": "FMエレクトリックピアノ",
+    "nameJa": "FMエレクトリックピアノ",
+    "presetName": "FM Electric Piano",
+    "bank": 0,
+    "program": 5,
+    "category": "鍵盤楽器",
+    "range": [
+      21,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:6",
+    "name": "チェンバロ",
+    "nameJa": "チェンバロ",
+    "presetName": "Harpsichord",
+    "bank": 0,
+    "program": 6,
+    "category": "鍵盤楽器",
+    "range": [
+      21,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:7",
+    "name": "クラビネット",
+    "nameJa": "クラビネット",
+    "presetName": "Clavinet",
+    "bank": 0,
+    "program": 7,
+    "category": "鍵盤楽器",
+    "range": [
+      21,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:8",
+    "name": "チェレスタ",
+    "nameJa": "チェレスタ",
+    "presetName": "Celeste",
+    "bank": 0,
+    "program": 8,
+    "category": "音程のある打楽器",
+    "range": [
+      48,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:9",
+    "name": "グロッケンシュピール",
+    "nameJa": "グロッケンシュピール",
+    "presetName": "Glockenspiel",
+    "bank": 0,
+    "program": 9,
+    "category": "音程のある打楽器",
+    "range": [
+      48,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:10",
+    "name": "オルゴール",
+    "nameJa": "オルゴール",
+    "presetName": "Music Box",
+    "bank": 0,
+    "program": 10,
+    "category": "音程のある打楽器",
+    "range": [
+      48,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:11",
+    "name": "ビブラフォン",
+    "nameJa": "ビブラフォン",
+    "presetName": "Vibraphone",
+    "bank": 0,
+    "program": 11,
+    "category": "音程のある打楽器",
+    "range": [
+      48,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:12",
+    "name": "マリンバ",
+    "nameJa": "マリンバ",
+    "presetName": "Marimba",
+    "bank": 0,
+    "program": 12,
+    "category": "音程のある打楽器",
+    "range": [
+      48,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:13",
+    "name": "木琴",
+    "nameJa": "木琴",
+    "presetName": "Xylophone",
+    "bank": 0,
+    "program": 13,
+    "category": "音程のある打楽器",
+    "range": [
+      48,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:14",
+    "name": "チューブラーベル",
+    "nameJa": "チューブラーベル",
+    "presetName": "Tubular Bells",
+    "bank": 0,
+    "program": 14,
+    "category": "音程のある打楽器",
+    "range": [
+      48,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:15",
+    "name": "ダルシマー",
+    "nameJa": "ダルシマー",
+    "presetName": "Dulcimer",
+    "bank": 0,
+    "program": 15,
+    "category": "音程のある打楽器",
+    "range": [
+      48,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:16",
+    "name": "トーンホイールオルガン",
+    "nameJa": "トーンホイールオルガン",
+    "presetName": "Tonewheel Organ",
+    "bank": 0,
+    "program": 16,
+    "category": "鍵盤楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:17",
+    "name": "パーカッシブオルガン",
+    "nameJa": "パーカッシブオルガン",
+    "presetName": "Percussive Organ",
+    "bank": 0,
+    "program": 17,
+    "category": "鍵盤楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:18",
+    "name": "ロックオルガン",
+    "nameJa": "ロックオルガン",
+    "presetName": "Rock Organ",
+    "bank": 0,
+    "program": 18,
+    "category": "鍵盤楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:19",
+    "name": "パイプオルガン",
+    "nameJa": "パイプオルガン",
+    "presetName": "Pipe Organ",
+    "bank": 0,
+    "program": 19,
+    "category": "鍵盤楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:20",
+    "name": "リードオルガン",
+    "nameJa": "リードオルガン",
+    "presetName": "Reed Organ",
+    "bank": 0,
+    "program": 20,
+    "category": "鍵盤楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:21",
+    "name": "アコーディオン",
+    "nameJa": "アコーディオン",
+    "presetName": "Accordion",
+    "bank": 0,
+    "program": 21,
+    "category": "鍵盤楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:22",
+    "name": "ハーモニカ",
+    "nameJa": "ハーモニカ",
+    "presetName": "Harmonica",
+    "bank": 0,
+    "program": 22,
+    "category": "木管・リード楽器",
+    "range": [
+      48,
+      84
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:23",
+    "name": "バンドネオン",
+    "nameJa": "バンドネオン",
+    "presetName": "Bandoneon",
+    "bank": 0,
+    "program": 23,
+    "category": "民族・その他",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:24",
+    "name": "ナイロンギター",
+    "nameJa": "ナイロンギター",
+    "presetName": "Nylon Guitar",
+    "bank": 0,
+    "program": 24,
+    "category": "ギター",
+    "range": [
+      40,
+      88
+    ],
+    "family": "guitar",
+    "guitarVoicing": true
+  },
+  {
+    "id": "0:25",
+    "name": "スチールギター",
+    "nameJa": "スチールギター",
+    "presetName": "Steel Guitar",
+    "bank": 0,
+    "program": 25,
+    "category": "ギター",
+    "range": [
+      40,
+      88
+    ],
+    "family": "guitar",
+    "guitarVoicing": true
+  },
+  {
+    "id": "0:26",
+    "name": "ジャズギター",
+    "nameJa": "ジャズギター",
+    "presetName": "Jazz Guitar",
+    "bank": 0,
+    "program": 26,
+    "category": "ギター",
+    "range": [
+      40,
+      88
+    ],
+    "family": "guitar",
+    "guitarVoicing": true
+  },
+  {
+    "id": "0:27",
+    "name": "クリーンギター",
+    "nameJa": "クリーンギター",
+    "presetName": "Clean Guitar",
+    "bank": 0,
+    "program": 27,
+    "category": "ギター",
+    "range": [
+      40,
+      88
+    ],
+    "family": "guitar",
+    "guitarVoicing": true
+  },
+  {
+    "id": "0:28",
+    "name": "ミュートギター",
+    "nameJa": "ミュートギター",
+    "presetName": "Muted Guitar",
+    "bank": 0,
+    "program": 28,
+    "category": "ギター",
+    "range": [
+      40,
+      88
+    ],
+    "family": "guitar",
+    "guitarVoicing": true
+  },
+  {
+    "id": "0:29",
+    "name": "オーバードライブギター",
+    "nameJa": "オーバードライブギター",
+    "presetName": "Overdrive Guitar",
+    "bank": 0,
+    "program": 29,
+    "category": "ギター",
+    "range": [
+      40,
+      88
+    ],
+    "family": "guitar",
+    "guitarVoicing": true
+  },
+  {
+    "id": "0:30",
+    "name": "ディストーションギター",
+    "nameJa": "ディストーションギター",
+    "presetName": "Distortion Guitar",
+    "bank": 0,
+    "program": 30,
+    "category": "ギター",
+    "range": [
+      40,
+      88
+    ],
+    "family": "guitar",
+    "guitarVoicing": true
+  },
+  {
+    "id": "0:31",
+    "name": "ギターハーモニクス",
+    "nameJa": "ギターハーモニクス",
+    "presetName": "Guitar Harmonics",
+    "bank": 0,
+    "program": 31,
+    "category": "ギター",
+    "range": [
+      40,
+      88
+    ],
+    "family": "guitar",
+    "guitarVoicing": true
+  },
+  {
+    "id": "0:32",
+    "name": "アコースティックベース",
+    "nameJa": "アコースティックベース",
+    "presetName": "Acoustic Bass",
+    "bank": 0,
+    "program": 32,
+    "category": "ベース",
+    "range": [
+      28,
+      67
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:33",
+    "name": "フィンガーベース",
+    "nameJa": "フィンガーベース",
+    "presetName": "Finger Bass",
+    "bank": 0,
+    "program": 33,
+    "category": "ベース",
+    "range": [
+      28,
+      67
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:34",
+    "name": "ピックベース",
+    "nameJa": "ピックベース",
+    "presetName": "Pick Bass",
+    "bank": 0,
+    "program": 34,
+    "category": "ベース",
+    "range": [
+      28,
+      67
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:35",
+    "name": "フレットレスベース",
+    "nameJa": "フレットレスベース",
+    "presetName": "Fretless Bass",
+    "bank": 0,
+    "program": 35,
+    "category": "ベース",
+    "range": [
+      28,
+      67
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:36",
+    "name": "スラップベース",
+    "nameJa": "スラップベース",
+    "presetName": "Slap Bass 1",
+    "bank": 0,
+    "program": 36,
+    "category": "ベース",
+    "range": [
+      28,
+      67
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:37",
+    "name": "スラップベース 2",
+    "nameJa": "スラップベース 2",
+    "presetName": "Slap Bass 2",
+    "bank": 0,
+    "program": 37,
+    "category": "ベース",
+    "range": [
+      28,
+      67
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:38",
+    "name": "シンセベース",
+    "nameJa": "シンセベース",
+    "presetName": "Synth Bass 1",
+    "bank": 0,
+    "program": 38,
+    "category": "ベース",
+    "range": [
+      28,
+      67
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:39",
+    "name": "シンセベース 2",
+    "nameJa": "シンセベース 2",
+    "presetName": "Synth Bass 2",
+    "bank": 0,
+    "program": 39,
+    "category": "ベース",
+    "range": [
+      28,
+      67
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:40",
+    "name": "バイオリン",
+    "nameJa": "バイオリン",
+    "presetName": "Violin",
+    "bank": 0,
+    "program": 40,
+    "category": "弦楽器",
+    "range": [
+      55,
+      103
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:41",
+    "name": "ビオラ",
+    "nameJa": "ビオラ",
+    "presetName": "Viola",
+    "bank": 0,
+    "program": 41,
+    "category": "弦楽器",
+    "range": [
+      48,
+      88
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:42",
+    "name": "チェロ",
+    "nameJa": "チェロ",
+    "presetName": "Cello",
+    "bank": 0,
+    "program": 42,
+    "category": "弦楽器",
+    "range": [
+      36,
+      84
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:43",
+    "name": "コントラバス",
+    "nameJa": "コントラバス",
+    "presetName": "Double Bass",
+    "bank": 0,
+    "program": 43,
+    "category": "ベース",
+    "range": [
+      28,
+      67
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:44",
+    "name": "トレモロストリングス",
+    "nameJa": "トレモロストリングス",
+    "presetName": "Tremolo Strings",
+    "bank": 0,
+    "program": 44,
+    "category": "弦楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:45",
+    "name": "ピチカートストリングス",
+    "nameJa": "ピチカートストリングス",
+    "presetName": "Pizzicato Strings",
+    "bank": 0,
+    "program": 45,
+    "category": "弦楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:46",
+    "name": "オーケストラハープ",
+    "nameJa": "オーケストラハープ",
+    "presetName": "Orchestral Harp",
+    "bank": 0,
+    "program": 46,
+    "category": "弦楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:47",
+    "name": "ティンパニ",
+    "nameJa": "ティンパニ",
+    "presetName": "Timpani",
+    "bank": 0,
+    "program": 47,
+    "category": "音程のある打楽器",
+    "range": [
+      38,
+      60
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:48",
+    "name": "ファストストリングス",
+    "nameJa": "ファストストリングス",
+    "presetName": "Fast Strings",
+    "bank": 0,
+    "program": 48,
+    "category": "弦楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:49",
+    "name": "スローストリングス",
+    "nameJa": "スローストリングス",
+    "presetName": "Slow Strings",
+    "bank": 0,
+    "program": 49,
+    "category": "弦楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:50",
+    "name": "シンセストリングス",
+    "nameJa": "シンセストリングス",
+    "presetName": "Synth Strings 1",
+    "bank": 0,
+    "program": 50,
+    "category": "弦楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:51",
+    "name": "シンセストリングス 2",
+    "nameJa": "シンセストリングス 2",
+    "presetName": "Synth Strings 2",
+    "bank": 0,
+    "program": 51,
+    "category": "弦楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:52",
+    "name": "コンサートクワイア",
+    "nameJa": "コンサートクワイア",
+    "presetName": "Concert Choir",
+    "bank": 0,
+    "program": 52,
+    "category": "声・コーラス",
+    "range": [
+      48,
+      84
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:53",
+    "name": "ボイス・ウー",
+    "nameJa": "ボイス・ウー",
+    "presetName": "Voice Oohs",
+    "bank": 0,
+    "program": 53,
+    "category": "声・コーラス",
+    "range": [
+      48,
+      84
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:54",
+    "name": "シンセボイス",
+    "nameJa": "シンセボイス",
+    "presetName": "Synth Voice",
+    "bank": 0,
+    "program": 54,
+    "category": "声・コーラス",
+    "range": [
+      48,
+      84
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:56",
+    "name": "トランペット",
+    "nameJa": "トランペット",
+    "presetName": "Trumpet",
+    "bank": 0,
+    "program": 56,
+    "category": "金管楽器",
+    "range": [
+      54,
+      82
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:57",
+    "name": "トロンボーン",
+    "nameJa": "トロンボーン",
+    "presetName": "Trombone",
+    "bank": 0,
+    "program": 57,
+    "category": "金管楽器",
+    "range": [
+      40,
+      77
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:58",
+    "name": "チューバ",
+    "nameJa": "チューバ",
+    "presetName": "Tuba",
+    "bank": 0,
+    "program": 58,
+    "category": "金管楽器",
+    "range": [
+      28,
+      63
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:59",
+    "name": "ミュートトランペット",
+    "nameJa": "ミュートトランペット",
+    "presetName": "Muted Trumpet",
+    "bank": 0,
+    "program": 59,
+    "category": "金管楽器",
+    "range": [
+      54,
+      82
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:60",
+    "name": "フレンチホルン",
+    "nameJa": "フレンチホルン",
+    "presetName": "French Horns",
+    "bank": 0,
+    "program": 60,
+    "category": "金管楽器",
+    "range": [
+      34,
+      77
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:61",
+    "name": "ブラスセクション",
+    "nameJa": "ブラスセクション",
+    "presetName": "Brass Section",
+    "bank": 0,
+    "program": 61,
+    "category": "金管楽器",
+    "range": [
+      54,
+      82
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:62",
+    "name": "シンセブラス",
+    "nameJa": "シンセブラス",
+    "presetName": "Synth Brass 1",
+    "bank": 0,
+    "program": 62,
+    "category": "金管楽器",
+    "range": [
+      54,
+      82
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:63",
+    "name": "シンセブラス 2",
+    "nameJa": "シンセブラス 2",
+    "presetName": "Synth Brass 2",
+    "bank": 0,
+    "program": 63,
+    "category": "金管楽器",
+    "range": [
+      54,
+      82
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:64",
+    "name": "ソプラノサックス",
+    "nameJa": "ソプラノサックス",
+    "presetName": "Soprano Sax",
+    "bank": 0,
+    "program": 64,
+    "category": "木管・リード楽器",
+    "range": [
+      49,
+      88
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:65",
+    "name": "アルトサックス",
+    "nameJa": "アルトサックス",
+    "presetName": "Alto Sax",
+    "bank": 0,
+    "program": 65,
+    "category": "木管・リード楽器",
+    "range": [
+      49,
+      88
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:66",
+    "name": "テナーサックス",
+    "nameJa": "テナーサックス",
+    "presetName": "Tenor Sax",
+    "bank": 0,
+    "program": 66,
+    "category": "木管・リード楽器",
+    "range": [
+      49,
+      88
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:67",
+    "name": "バリトンサックス",
+    "nameJa": "バリトンサックス",
+    "presetName": "Baritone Sax",
+    "bank": 0,
+    "program": 67,
+    "category": "木管・リード楽器",
+    "range": [
+      49,
+      88
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:68",
+    "name": "オーボエ",
+    "nameJa": "オーボエ",
+    "presetName": "Oboe",
+    "bank": 0,
+    "program": 68,
+    "category": "木管・リード楽器",
+    "range": [
+      58,
+      91
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:69",
+    "name": "イングリッシュホルン",
+    "nameJa": "イングリッシュホルン",
+    "presetName": "English Horn",
+    "bank": 0,
+    "program": 69,
+    "category": "金管楽器",
+    "range": [
+      34,
+      77
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:70",
+    "name": "ファゴット",
+    "nameJa": "ファゴット",
+    "presetName": "Bassoon",
+    "bank": 0,
+    "program": 70,
+    "category": "ベース",
+    "range": [
+      28,
+      67
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:71",
+    "name": "クラリネット",
+    "nameJa": "クラリネット",
+    "presetName": "Clarinet",
+    "bank": 0,
+    "program": 71,
+    "category": "木管・リード楽器",
+    "range": [
+      50,
+      94
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:72",
+    "name": "ピッコロ",
+    "nameJa": "ピッコロ",
+    "presetName": "Piccolo",
+    "bank": 0,
+    "program": 72,
+    "category": "木管・リード楽器",
+    "range": [
+      72,
+      108
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:73",
+    "name": "フルート",
+    "nameJa": "フルート",
+    "presetName": "Flute",
+    "bank": 0,
+    "program": 73,
+    "category": "木管・リード楽器",
+    "range": [
+      60,
+      96
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:74",
+    "name": "リコーダー",
+    "nameJa": "リコーダー",
+    "presetName": "Recorder",
+    "bank": 0,
+    "program": 74,
+    "category": "木管・リード楽器",
+    "range": [
+      48,
+      88
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:75",
+    "name": "パンフルート",
+    "nameJa": "パンフルート",
+    "presetName": "Pan Flute",
+    "bank": 0,
+    "program": 75,
+    "category": "木管・リード楽器",
+    "range": [
+      60,
+      96
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:76",
+    "name": "ボトルブロー",
+    "nameJa": "ボトルブロー",
+    "presetName": "Bottle Blow",
+    "bank": 0,
+    "program": 76,
+    "category": "木管・リード楽器",
+    "range": [
+      48,
+      88
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:77",
+    "name": "尺八",
+    "nameJa": "尺八",
+    "presetName": "Shakuhachi",
+    "bank": 0,
+    "program": 77,
+    "category": "木管・リード楽器",
+    "range": [
+      48,
+      88
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:78",
+    "name": "ホイッスル",
+    "nameJa": "ホイッスル",
+    "presetName": "Whistle",
+    "bank": 0,
+    "program": 78,
+    "category": "木管・リード楽器",
+    "range": [
+      60,
+      96
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:79",
+    "name": "オカリナ",
+    "nameJa": "オカリナ",
+    "presetName": "Ocarina",
+    "bank": 0,
+    "program": 79,
+    "category": "木管・リード楽器",
+    "range": [
+      48,
+      88
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:80",
+    "name": "スクエアリード",
+    "nameJa": "スクエアリード",
+    "presetName": "Square Lead",
+    "bank": 0,
+    "program": 80,
+    "category": "シンセサイザー",
+    "range": [
+      24,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:81",
+    "name": "ソーリード",
+    "nameJa": "ソーリード",
+    "presetName": "Saw Lead",
+    "bank": 0,
+    "program": 81,
+    "category": "シンセサイザー",
+    "range": [
+      24,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:82",
+    "name": "シンセカリオペ",
+    "nameJa": "シンセカリオペ",
+    "presetName": "Synth Calliope",
+    "bank": 0,
+    "program": 82,
+    "category": "シンセサイザー",
+    "range": [
+      24,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:83",
+    "name": "シファーリード",
+    "nameJa": "シファーリード",
+    "presetName": "Chiffer Lead",
+    "bank": 0,
+    "program": 83,
+    "category": "シンセサイザー",
+    "range": [
+      24,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:84",
+    "name": "チャラン",
+    "nameJa": "チャラン",
+    "presetName": "Charang",
+    "bank": 0,
+    "program": 84,
+    "category": "シンセサイザー",
+    "range": [
+      24,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:85",
+    "name": "ソロボイス",
+    "nameJa": "ソロボイス",
+    "presetName": "Solo Vox",
+    "bank": 0,
+    "program": 85,
+    "category": "声・コーラス",
+    "range": [
+      48,
+      84
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:86",
+    "name": "フィフスソー",
+    "nameJa": "フィフスソー",
+    "presetName": "5th Saw Wave",
+    "bank": 0,
+    "program": 86,
+    "category": "シンセサイザー",
+    "range": [
+      24,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:87",
+    "name": "ベース＆リード",
+    "nameJa": "ベース＆リード",
+    "presetName": "Bass & Lead",
+    "bank": 0,
+    "program": 87,
+    "category": "ベース",
+    "range": [
+      28,
+      67
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:88",
+    "name": "ファンタジア",
+    "nameJa": "ファンタジア",
+    "presetName": "Fantasia",
+    "bank": 0,
+    "program": 88,
+    "category": "シンセサイザー",
+    "range": [
+      24,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:89",
+    "name": "ウォームパッド",
+    "nameJa": "ウォームパッド",
+    "presetName": "Warm Pad",
+    "bank": 0,
+    "program": 89,
+    "category": "シンセサイザー",
+    "range": [
+      24,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:90",
+    "name": "ポリシンセ",
+    "nameJa": "ポリシンセ",
+    "presetName": "Polysynth",
+    "bank": 0,
+    "program": 90,
+    "category": "シンセサイザー",
+    "range": [
+      24,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:91",
+    "name": "スペースボイス",
+    "nameJa": "スペースボイス",
+    "presetName": "Space Voice",
+    "bank": 0,
+    "program": 91,
+    "category": "声・コーラス",
+    "range": [
+      48,
+      84
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:92",
+    "name": "ボウドグラス",
+    "nameJa": "ボウドグラス",
+    "presetName": "Bowed Glass",
+    "bank": 0,
+    "program": 92,
+    "category": "シンセサイザー",
+    "range": [
+      24,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:93",
+    "name": "メタルパッド",
+    "nameJa": "メタルパッド",
+    "presetName": "Metal Pad",
+    "bank": 0,
+    "program": 93,
+    "category": "シンセサイザー",
+    "range": [
+      24,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:94",
+    "name": "ハローパッド",
+    "nameJa": "ハローパッド",
+    "presetName": "Halo Pad",
+    "bank": 0,
+    "program": 94,
+    "category": "シンセサイザー",
+    "range": [
+      24,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:95",
+    "name": "スイープパッド",
+    "nameJa": "スイープパッド",
+    "presetName": "Sweep Pad",
+    "bank": 0,
+    "program": 95,
+    "category": "鍵盤楽器",
+    "range": [
+      24,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:104",
+    "name": "シタール",
+    "nameJa": "シタール",
+    "presetName": "Sitar",
+    "bank": 0,
+    "program": 104,
+    "category": "民族・その他",
+    "range": [
+      36,
+      88
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:105",
+    "name": "バンジョー",
+    "nameJa": "バンジョー",
+    "presetName": "Banjo",
+    "bank": 0,
+    "program": 105,
+    "category": "民族・その他",
+    "range": [
+      40,
+      88
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:106",
+    "name": "三味線",
+    "nameJa": "三味線",
+    "presetName": "Shamisen",
+    "bank": 0,
+    "program": 106,
+    "category": "民族・その他",
+    "range": [
+      40,
+      88
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:107",
+    "name": "琴",
+    "nameJa": "琴",
+    "presetName": "Koto",
+    "bank": 0,
+    "program": 107,
+    "category": "民族・その他",
+    "range": [
+      40,
+      88
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:108",
+    "name": "カリンバ",
+    "nameJa": "カリンバ",
+    "presetName": "Kalimba",
+    "bank": 0,
+    "program": 108,
+    "category": "音程のある打楽器",
+    "range": [
+      48,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:109",
+    "name": "バグパイプ",
+    "nameJa": "バグパイプ",
+    "presetName": "Bagpipes",
+    "bank": 0,
+    "program": 109,
+    "category": "民族・その他",
+    "range": [
+      36,
+      88
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:110",
+    "name": "フィドル",
+    "nameJa": "フィドル",
+    "presetName": "Fiddle",
+    "bank": 0,
+    "program": 110,
+    "category": "弦楽器",
+    "range": [
+      55,
+      103
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:111",
+    "name": "シェーナイ",
+    "nameJa": "シェーナイ",
+    "presetName": "Shenai",
+    "bank": 0,
+    "program": 111,
+    "category": "木管・リード楽器",
+    "range": [
+      58,
+      91
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:112",
+    "name": "ティンカーベル",
+    "nameJa": "ティンカーベル",
+    "presetName": "Tinker Bell",
+    "bank": 0,
+    "program": 112,
+    "category": "音程のある打楽器",
+    "range": [
+      48,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "0:114",
+    "name": "スティールドラム",
+    "nameJa": "スティールドラム",
+    "presetName": "Steel Drums",
+    "bank": 0,
+    "program": 114,
+    "category": "音程のある打楽器",
+    "range": [
+      36,
+      88
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "1:38",
+    "name": "Synth Bass 101（Synth Bass 101）",
+    "nameJa": "Synth Bass 101",
+    "presetName": "Synth Bass 101",
+    "bank": 1,
+    "program": 38,
+    "category": "ベース",
+    "range": [
+      28,
+      67
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "1:44",
+    "name": "Tremolo Strings Mono（Tremolo Strings Mono）",
+    "nameJa": "Tremolo Strings Mono",
+    "presetName": "Tremolo Strings Mono",
+    "bank": 1,
+    "program": 44,
+    "category": "弦楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "1:48",
+    "name": "Fast Strings Mono（Fast Strings Mono）",
+    "nameJa": "Fast Strings Mono",
+    "presetName": "Fast Strings Mono",
+    "bank": 1,
+    "program": 48,
+    "category": "弦楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "1:49",
+    "name": "Slow Strings Mono（Slow Strings Mono）",
+    "nameJa": "Slow Strings Mono",
+    "presetName": "Slow Strings Mono",
+    "bank": 1,
+    "program": 49,
+    "category": "弦楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "1:52",
+    "name": "Concert Choir Mono（Concert Choir Mono）",
+    "nameJa": "Concert Choir Mono",
+    "presetName": "Concert Choir Mono",
+    "bank": 1,
+    "program": 52,
+    "category": "声・コーラス",
+    "range": [
+      48,
+      84
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "1:56",
+    "name": "Trumpet 2（Trumpet 2）",
+    "nameJa": "Trumpet 2",
+    "presetName": "Trumpet 2",
+    "bank": 1,
+    "program": 56,
+    "category": "金管楽器",
+    "range": [
+      54,
+      82
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "1:57",
+    "name": "Trombone 2（Trombone 2）",
+    "nameJa": "Trombone 2",
+    "presetName": "Trombone 2",
+    "bank": 1,
+    "program": 57,
+    "category": "金管楽器",
+    "range": [
+      40,
+      77
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "1:60",
+    "name": "Solo French Horn（Solo French Horn）",
+    "nameJa": "Solo French Horn",
+    "presetName": "Solo French Horn",
+    "bank": 1,
+    "program": 60,
+    "category": "金管楽器",
+    "range": [
+      34,
+      77
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "1:61",
+    "name": "Brass Section Mono（Brass Section Mono）",
+    "nameJa": "Brass Section Mono",
+    "presetName": "Brass Section Mono",
+    "bank": 1,
+    "program": 61,
+    "category": "金管楽器",
+    "range": [
+      54,
+      82
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "1:80",
+    "name": "Square Wave（Square Wave）",
+    "nameJa": "Square Wave",
+    "presetName": "Square Wave",
+    "bank": 1,
+    "program": 80,
+    "category": "シンセサイザー",
+    "range": [
+      24,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "1:81",
+    "name": "Saw Wave（Saw Wave）",
+    "nameJa": "Saw Wave",
+    "presetName": "Saw Wave",
+    "bank": 1,
+    "program": 81,
+    "category": "シンセサイザー",
+    "range": [
+      24,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "8:4",
+    "name": "Chorused Tine EP（Chorused Tine EP）",
+    "nameJa": "Chorused Tine EP",
+    "presetName": "Chorused Tine EP",
+    "bank": 8,
+    "program": 4,
+    "category": "鍵盤楽器",
+    "range": [
+      21,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "8:5",
+    "name": "Chorused FM EP（Chorused FM EP）",
+    "nameJa": "Chorused FM EP",
+    "presetName": "Chorused FM EP",
+    "bank": 8,
+    "program": 5,
+    "category": "鍵盤楽器",
+    "range": [
+      21,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "8:6",
+    "name": "Coupled Harpsichord（Coupled Harpsichord）",
+    "nameJa": "Coupled Harpsichord",
+    "presetName": "Coupled Harpsichord",
+    "bank": 8,
+    "program": 6,
+    "category": "鍵盤楽器",
+    "range": [
+      21,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "8:14",
+    "name": "Church Bells（Church Bells）",
+    "nameJa": "Church Bells",
+    "presetName": "Church Bells",
+    "bank": 8,
+    "program": 14,
+    "category": "音程のある打楽器",
+    "range": [
+      48,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "8:16",
+    "name": "Detuned Tnwl. Organ（Detuned Tnwl. Organ）",
+    "nameJa": "Detuned Tnwl. Organ",
+    "presetName": "Detuned Tnwl. Organ",
+    "bank": 8,
+    "program": 16,
+    "category": "鍵盤楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "8:17",
+    "name": "Detuned Perc. Organ（Detuned Perc. Organ）",
+    "nameJa": "Detuned Perc. Organ",
+    "presetName": "Detuned Perc. Organ",
+    "bank": 8,
+    "program": 17,
+    "category": "鍵盤楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "8:19",
+    "name": "Pipe Organ 2（Pipe Organ 2）",
+    "nameJa": "Pipe Organ 2",
+    "presetName": "Pipe Organ 2",
+    "bank": 8,
+    "program": 19,
+    "category": "鍵盤楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "8:21",
+    "name": "Italian Accordion（Italian Accordion）",
+    "nameJa": "Italian Accordion",
+    "presetName": "Italian Accordion",
+    "bank": 8,
+    "program": 21,
+    "category": "鍵盤楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "8:24",
+    "name": "ウクレレ（Ukulele）",
+    "nameJa": "ウクレレ",
+    "presetName": "Ukulele",
+    "bank": 8,
+    "program": 24,
+    "category": "ギター",
+    "range": [
+      40,
+      88
+    ],
+    "family": "guitar",
+    "guitarVoicing": true
+  },
+  {
+    "id": "8:25",
+    "name": "12弦ギター（12-String Guitar）",
+    "nameJa": "12弦ギター",
+    "presetName": "12-String Guitar",
+    "bank": 8,
+    "program": 25,
+    "category": "ギター",
+    "range": [
+      40,
+      88
+    ],
+    "family": "guitar",
+    "guitarVoicing": true
+  },
+  {
+    "id": "8:26",
+    "name": "ハワイアンギター（Hawaiian Guitar）",
+    "nameJa": "ハワイアンギター",
+    "presetName": "Hawaiian Guitar",
+    "bank": 8,
+    "program": 26,
+    "category": "ギター",
+    "range": [
+      40,
+      88
+    ],
+    "family": "guitar",
+    "guitarVoicing": true
+  },
+  {
+    "id": "8:27",
+    "name": "Chorused Clean Gt.（Chorused Clean Gt.）",
+    "nameJa": "Chorused Clean Gt.",
+    "presetName": "Chorused Clean Gt.",
+    "bank": 8,
+    "program": 27,
+    "category": "ギター",
+    "range": [
+      40,
+      88
+    ],
+    "family": "guitar",
+    "guitarVoicing": true
+  },
+  {
+    "id": "8:28",
+    "name": "Funk Guitar（Funk Guitar）",
+    "nameJa": "Funk Guitar",
+    "presetName": "Funk Guitar",
+    "bank": 8,
+    "program": 28,
+    "category": "ギター",
+    "range": [
+      40,
+      88
+    ],
+    "family": "guitar",
+    "guitarVoicing": true
+  },
+  {
+    "id": "8:30",
+    "name": "Feedback Guitar（Feedback Guitar）",
+    "nameJa": "Feedback Guitar",
+    "presetName": "Feedback Guitar",
+    "bank": 8,
+    "program": 30,
+    "category": "ギター",
+    "range": [
+      40,
+      88
+    ],
+    "family": "guitar",
+    "guitarVoicing": true
+  },
+  {
+    "id": "8:31",
+    "name": "Guitar Feedback（Guitar Feedback）",
+    "nameJa": "Guitar Feedback",
+    "presetName": "Guitar Feedback",
+    "bank": 8,
+    "program": 31,
+    "category": "ギター",
+    "range": [
+      40,
+      88
+    ],
+    "family": "guitar",
+    "guitarVoicing": true
+  },
+  {
+    "id": "8:38",
+    "name": "Acid Bass（Acid Bass）",
+    "nameJa": "Acid Bass",
+    "presetName": "Acid Bass",
+    "bank": 8,
+    "program": 38,
+    "category": "ベース",
+    "range": [
+      28,
+      67
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "8:39",
+    "name": "Beef FM Bass（Beef FM Bass）",
+    "nameJa": "Beef FM Bass",
+    "presetName": "Beef FM Bass",
+    "bank": 8,
+    "program": 39,
+    "category": "ベース",
+    "range": [
+      28,
+      67
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "8:48",
+    "name": "Orchestra Pad（Orchestra Pad）",
+    "nameJa": "Orchestra Pad",
+    "presetName": "Orchestra Pad",
+    "bank": 8,
+    "program": 48,
+    "category": "弦楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "8:50",
+    "name": "Synth Strings 3（Synth Strings 3）",
+    "nameJa": "Synth Strings 3",
+    "presetName": "Synth Strings 3",
+    "bank": 8,
+    "program": 50,
+    "category": "弦楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "8:61",
+    "name": "Brass Section 2（Brass Section 2）",
+    "nameJa": "Brass Section 2",
+    "presetName": "Brass Section 2",
+    "bank": 8,
+    "program": 61,
+    "category": "金管楽器",
+    "range": [
+      54,
+      82
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "8:62",
+    "name": "Synth Brass 3（Synth Brass 3）",
+    "nameJa": "Synth Brass 3",
+    "presetName": "Synth Brass 3",
+    "bank": 8,
+    "program": 62,
+    "category": "金管楽器",
+    "range": [
+      54,
+      82
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "8:63",
+    "name": "Synth Brass 4（Synth Brass 4）",
+    "nameJa": "Synth Brass 4",
+    "presetName": "Synth Brass 4",
+    "bank": 8,
+    "program": 63,
+    "category": "金管楽器",
+    "range": [
+      54,
+      82
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "8:80",
+    "name": "Sine Wave（Sine Wave）",
+    "nameJa": "Sine Wave",
+    "presetName": "Sine Wave",
+    "bank": 8,
+    "program": 80,
+    "category": "シンセサイザー",
+    "range": [
+      24,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "8:81",
+    "name": "Doctor Solo（Doctor Solo）",
+    "nameJa": "Doctor Solo",
+    "presetName": "Doctor Solo",
+    "bank": 8,
+    "program": 81,
+    "category": "シンセサイザー",
+    "range": [
+      24,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "8:107",
+    "name": "大正琴（Taisho Koto）",
+    "nameJa": "大正琴",
+    "presetName": "Taisho Koto",
+    "bank": 8,
+    "program": 107,
+    "category": "民族・その他",
+    "range": [
+      40,
+      88
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "9:14",
+    "name": "Carillon（Carillon）",
+    "nameJa": "Carillon",
+    "presetName": "Carillon",
+    "bank": 9,
+    "program": 14,
+    "category": "音程のある打楽器",
+    "range": [
+      48,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "11:0",
+    "name": "Piano & Str.-Fade（Piano & Str.-Fade）",
+    "nameJa": "Piano & Str.-Fade",
+    "presetName": "Piano & Str.-Fade",
+    "bank": 11,
+    "program": 0,
+    "category": "鍵盤楽器",
+    "range": [
+      21,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "11:1",
+    "name": "Piano & Str.-Sus（Piano & Str.-Sus）",
+    "nameJa": "Piano & Str.-Sus",
+    "presetName": "Piano & Str.-Sus",
+    "bank": 11,
+    "program": 1,
+    "category": "鍵盤楽器",
+    "range": [
+      21,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "11:4",
+    "name": "Tine & FM EPs（Tine & FM EPs）",
+    "nameJa": "Tine & FM EPs",
+    "presetName": "Tine & FM EPs",
+    "bank": 11,
+    "program": 4,
+    "category": "鍵盤楽器",
+    "range": [
+      21,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "11:5",
+    "name": "Piano & FM EP（Piano & FM EP）",
+    "nameJa": "Piano & FM EP",
+    "presetName": "Piano & FM EP",
+    "bank": 11,
+    "program": 5,
+    "category": "鍵盤楽器",
+    "range": [
+      21,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "11:6",
+    "name": "Harpsichord noVel（Harpsichord noVel）",
+    "nameJa": "Harpsichord noVel",
+    "presetName": "Harpsichord noVel",
+    "bank": 11,
+    "program": 6,
+    "category": "鍵盤楽器",
+    "range": [
+      21,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "11:8",
+    "name": "Tinkling Bells（Tinkling Bells）",
+    "nameJa": "Tinkling Bells",
+    "presetName": "Tinkling Bells",
+    "bank": 11,
+    "program": 8,
+    "category": "音程のある打楽器",
+    "range": [
+      48,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "11:11",
+    "name": "Vibraphone No Trem.（Vibraphone No Trem.）",
+    "nameJa": "Vibraphone No Trem.",
+    "presetName": "Vibraphone No Trem.",
+    "bank": 11,
+    "program": 11,
+    "category": "音程のある打楽器",
+    "range": [
+      48,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "11:14",
+    "name": "Bell Tower（Bell Tower）",
+    "nameJa": "Bell Tower",
+    "presetName": "Bell Tower",
+    "bank": 11,
+    "program": 14,
+    "category": "音程のある打楽器",
+    "range": [
+      48,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "11:16",
+    "name": "Tonewheel Org noVel（Tonewheel Org noVel）",
+    "nameJa": "Tonewheel Org noVel",
+    "presetName": "Tonewheel Org noVel",
+    "bank": 11,
+    "program": 16,
+    "category": "民族・その他",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "11:17",
+    "name": "Percussive Org noVel（Percussive Org noVel）",
+    "nameJa": "Percussive Org noVel",
+    "presetName": "Percussive Org noVel",
+    "bank": 11,
+    "program": 17,
+    "category": "民族・その他",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "11:18",
+    "name": "Rock Organ noVel（Rock Organ noVel）",
+    "nameJa": "Rock Organ noVel",
+    "presetName": "Rock Organ noVel",
+    "bank": 11,
+    "program": 18,
+    "category": "鍵盤楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "11:19",
+    "name": "Pipe Organ noVel（Pipe Organ noVel）",
+    "nameJa": "Pipe Organ noVel",
+    "presetName": "Pipe Organ noVel",
+    "bank": 11,
+    "program": 19,
+    "category": "鍵盤楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "11:20",
+    "name": "Reed Organ noVel（Reed Organ noVel）",
+    "nameJa": "Reed Organ noVel",
+    "presetName": "Reed Organ noVel",
+    "bank": 11,
+    "program": 20,
+    "category": "鍵盤楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "11:29",
+    "name": "Wah Guitar (CC21)（Wah Guitar (CC21)）",
+    "nameJa": "Wah Guitar (CC21)",
+    "presetName": "Wah Guitar (CC21)",
+    "bank": 11,
+    "program": 29,
+    "category": "ギター",
+    "range": [
+      40,
+      88
+    ],
+    "family": "guitar",
+    "guitarVoicing": true
+  },
+  {
+    "id": "11:38",
+    "name": "Techno Bass（Techno Bass）",
+    "nameJa": "Techno Bass",
+    "presetName": "Techno Bass",
+    "bank": 11,
+    "program": 38,
+    "category": "ベース",
+    "range": [
+      28,
+      67
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "11:39",
+    "name": "Pulse Bass（Pulse Bass）",
+    "nameJa": "Pulse Bass",
+    "presetName": "Pulse Bass",
+    "bank": 11,
+    "program": 39,
+    "category": "ベース",
+    "range": [
+      28,
+      67
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "11:49",
+    "name": "Velo Strings（Velo Strings）",
+    "nameJa": "Velo Strings",
+    "presetName": "Velo Strings",
+    "bank": 11,
+    "program": 49,
+    "category": "弦楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "11:50",
+    "name": "Synth Strings 4（Synth Strings 4）",
+    "nameJa": "Synth Strings 4",
+    "presetName": "Synth Strings 4",
+    "bank": 11,
+    "program": 50,
+    "category": "弦楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "11:51",
+    "name": "Synth Strings 5（Synth Strings 5）",
+    "nameJa": "Synth Strings 5",
+    "presetName": "Synth Strings 5",
+    "bank": 11,
+    "program": 51,
+    "category": "弦楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "11:61",
+    "name": "Brass Section 3（Brass Section 3）",
+    "nameJa": "Brass Section 3",
+    "presetName": "Brass Section 3",
+    "bank": 11,
+    "program": 61,
+    "category": "金管楽器",
+    "range": [
+      54,
+      82
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "11:78",
+    "name": "Whistlin'（Whistlin'）",
+    "nameJa": "Whistlin'",
+    "presetName": "Whistlin'",
+    "bank": 11,
+    "program": 78,
+    "category": "木管・リード楽器",
+    "range": [
+      48,
+      88
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "11:81",
+    "name": "Sawtooth Stab（Sawtooth Stab）",
+    "nameJa": "Sawtooth Stab",
+    "presetName": "Sawtooth Stab",
+    "bank": 11,
+    "program": 81,
+    "category": "シンセサイザー",
+    "range": [
+      24,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "11:88",
+    "name": "Harpsi Pad（Harpsi Pad）",
+    "nameJa": "Harpsi Pad",
+    "presetName": "Harpsi Pad",
+    "bank": 11,
+    "program": 88,
+    "category": "弦楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "12:0",
+    "name": "Bell Piano（Bell Piano）",
+    "nameJa": "Bell Piano",
+    "presetName": "Bell Piano",
+    "bank": 12,
+    "program": 0,
+    "category": "鍵盤楽器",
+    "range": [
+      21,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "12:4",
+    "name": "Bell Tine EP（Bell Tine EP）",
+    "nameJa": "Bell Tine EP",
+    "presetName": "Bell Tine EP",
+    "bank": 12,
+    "program": 4,
+    "category": "鍵盤楽器",
+    "range": [
+      21,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "12:6",
+    "name": "Coupled Harpsi noVel（Coupled Harpsi noVel）",
+    "nameJa": "Coupled Harpsi noVel",
+    "presetName": "Coupled Harpsi noVel",
+    "bank": 12,
+    "program": 6,
+    "category": "鍵盤楽器",
+    "range": [
+      21,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "12:10",
+    "name": "Christmas Bells（Christmas Bells）",
+    "nameJa": "Christmas Bells",
+    "presetName": "Christmas Bells",
+    "bank": 12,
+    "program": 10,
+    "category": "音程のある打楽器",
+    "range": [
+      48,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "12:16",
+    "name": "Detun Tnwl Org noVel（Detun Tnwl Org noVel）",
+    "nameJa": "Detun Tnwl Org noVel",
+    "presetName": "Detun Tnwl Org noVel",
+    "bank": 12,
+    "program": 16,
+    "category": "民族・その他",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "12:17",
+    "name": "Detun Perc Org noVel（Detun Perc Org noVel）",
+    "nameJa": "Detun Perc Org noVel",
+    "presetName": "Detun Perc Org noVel",
+    "bank": 12,
+    "program": 17,
+    "category": "民族・その他",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "12:19",
+    "name": "Pipe Organ 2 noVel（Pipe Organ 2 noVel）",
+    "nameJa": "Pipe Organ 2 noVel",
+    "presetName": "Pipe Organ 2 noVel",
+    "bank": 12,
+    "program": 19,
+    "category": "鍵盤楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "12:27",
+    "name": "Clean Guitar 2（Clean Guitar 2）",
+    "nameJa": "Clean Guitar 2",
+    "presetName": "Clean Guitar 2",
+    "bank": 12,
+    "program": 27,
+    "category": "ギター",
+    "range": [
+      40,
+      88
+    ],
+    "family": "guitar",
+    "guitarVoicing": true
+  },
+  {
+    "id": "12:38",
+    "name": "Mean Saw Bass（Mean Saw Bass）",
+    "nameJa": "Mean Saw Bass",
+    "presetName": "Mean Saw Bass",
+    "bank": 12,
+    "program": 38,
+    "category": "ベース",
+    "range": [
+      28,
+      67
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "12:48",
+    "name": "Full Orchestra（Full Orchestra）",
+    "nameJa": "Full Orchestra",
+    "presetName": "Full Orchestra",
+    "bank": 12,
+    "program": 48,
+    "category": "弦楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "12:49",
+    "name": "Velo Strings Mono（Velo Strings Mono）",
+    "nameJa": "Velo Strings Mono",
+    "presetName": "Velo Strings Mono",
+    "bank": 12,
+    "program": 49,
+    "category": "弦楽器",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "12:80",
+    "name": "Square Lead 2（Square Lead 2）",
+    "nameJa": "Square Lead 2",
+    "presetName": "Square Lead 2",
+    "bank": 12,
+    "program": 80,
+    "category": "シンセサイザー",
+    "range": [
+      24,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "12:81",
+    "name": "Saw Lead 2（Saw Lead 2）",
+    "nameJa": "Saw Lead 2",
+    "presetName": "Saw Lead 2",
+    "bank": 12,
+    "program": 81,
+    "category": "シンセサイザー",
+    "range": [
+      24,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "12:88",
+    "name": "Fantasia 2（Fantasia 2）",
+    "nameJa": "Fantasia 2",
+    "presetName": "Fantasia 2",
+    "bank": 12,
+    "program": 88,
+    "category": "シンセサイザー",
+    "range": [
+      24,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "12:89",
+    "name": "Solar Wind 2（Solar Wind 2）",
+    "nameJa": "Solar Wind 2",
+    "presetName": "Solar Wind 2",
+    "bank": 12,
+    "program": 89,
+    "category": "シンセサイザー",
+    "range": [
+      24,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "13:48",
+    "name": "Woodwind Choir（Woodwind Choir）",
+    "nameJa": "Woodwind Choir",
+    "presetName": "Woodwind Choir",
+    "bank": 13,
+    "program": 48,
+    "category": "声・コーラス",
+    "range": [
+      36,
+      96
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "13:80",
+    "name": "Square Lead 3（Square Lead 3）",
+    "nameJa": "Square Lead 3",
+    "presetName": "Square Lead 3",
+    "bank": 13,
+    "program": 80,
+    "category": "シンセサイザー",
+    "range": [
+      24,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "13:81",
+    "name": "Saw Lead 3（Saw Lead 3）",
+    "nameJa": "Saw Lead 3",
+    "presetName": "Saw Lead 3",
+    "bank": 13,
+    "program": 81,
+    "category": "シンセサイザー",
+    "range": [
+      24,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "13:88",
+    "name": "Night Vision（Night Vision）",
+    "nameJa": "Night Vision",
+    "presetName": "Night Vision",
+    "bank": 13,
+    "program": 88,
+    "category": "シンセサイザー",
+    "range": [
+      24,
+      108
+    ],
+    "family": "poly",
+    "guitarVoicing": false
+  },
+  {
+    "id": "16:25",
+    "name": "マンドリン（Mandolin）",
+    "nameJa": "マンドリン",
+    "presetName": "Mandolin",
+    "bank": 16,
+    "program": 25,
+    "category": "ギター",
+    "range": [
+      40,
+      88
+    ],
+    "family": "guitar",
+    "guitarVoicing": true
+  },
+  {
+    "id": "24:75",
+    "name": "ティンホイッスル（Tin Whistle）",
+    "nameJa": "ティンホイッスル",
+    "presetName": "Tin Whistle",
+    "bank": 24,
+    "program": 75,
+    "category": "木管・リード楽器",
+    "range": [
+      60,
+      96
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "25:75",
+    "name": "Tin Whistle Nm（Tin Whistle Nm）",
+    "nameJa": "Tin Whistle Nm",
+    "presetName": "Tin Whistle Nm",
+    "bank": 25,
+    "program": 75,
+    "category": "木管・リード楽器",
+    "range": [
+      60,
+      96
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  },
+  {
+    "id": "26:75",
+    "name": "Tin Whistle Or（Tin Whistle Or）",
+    "nameJa": "Tin Whistle Or",
+    "presetName": "Tin Whistle Or",
+    "bank": 26,
+    "program": 75,
+    "category": "木管・リード楽器",
+    "range": [
+      60,
+      96
+    ],
+    "family": "mono",
+    "guitarVoicing": false
+  }
+]
