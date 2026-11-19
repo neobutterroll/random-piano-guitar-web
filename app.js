@@ -172,11 +172,11 @@ function configureIOSAudio(){try{if(navigator.audioSession)navigator.audioSessio
 function updateMediaSession(active){
   if(!('mediaSession' in navigator))return;
   try{
-    navigator.mediaSession.metadata=new MediaMetadata({title:'音感トレーニング',artist:'Random Piano & Guitar',album:'バックグラウンド再生 実験版 v7'});
+    navigator.mediaSession.metadata=new MediaMetadata({title:'音感トレーニング',artist:'Random Piano & Guitar',album:'バックグラウンド再生 実験版 v8'});
     navigator.mediaSession.playbackState=active?'playing':'paused';
     navigator.mediaSession.setActionHandler('play',()=>{if(!playing)startSession();else audioContext?.resume().catch(()=>{});});
-    navigator.mediaSession.setActionHandler('pause',()=>{if(playing)stopSession('ロック画面から停止しました');});
-    navigator.mediaSession.setActionHandler('stop',()=>{if(playing)stopSession('ロック画面から停止しました');});
+    navigator.mediaSession.setActionHandler('pause',()=>{console.info('[v8] Media Session pause event (no automatic session stop)');});
+    navigator.mediaSession.setActionHandler('stop',()=>{console.info('[v8] Media Session stop event (no automatic session stop)');});
   }catch(e){console.warn('Media Session unavailable',e);}
 }
 function restoreAudioIfNeeded(){
