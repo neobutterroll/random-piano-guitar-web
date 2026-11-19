@@ -13,6 +13,7 @@
   <section class="panel">
     <h2>1. 楽器・トレーニングモード</h2>
     <label>楽器・カテゴリー<select id="instrument"></select></label>
+    <div id="customInstrumentPanel" class="hidden"><p class="small">ランダム出題したい楽器にチェックを入れてください。コード系モードでは非対応楽器を除外します。</p><div id="customInstrumentList" class="custom-instrument-list"></div></div>
     <p id="instrumentRange" class="small">音域：音源を確認中</p>
     <label>トレーニングモード<select id="mode"><option value="0">単音</option><option value="1">コード</option><option value="2">音程</option><option value="3">コード進行</option><option value="4">メロディ</option></select></label>
   </section>
@@ -44,9 +45,10 @@
     <div class="grid three"><label>再生時間（分）<input id="minutes" type="number" min="0.1" max="600" step="0.1" value="10"></label><label>音の長さ（秒）<input id="duration" type="number" min="0.05" step="0.05" value="1"></label><label>問題間隔（秒）<input id="questionGap" type="number" min="0" step="0.05" value="1"></label></div>
     <label>音と音の間隔（秒）<input id="soundGap" type="number" min="0" step="0.05" value="0.5"></label>
     <p class="small">「音と音の間隔」は音程・メロディ・コード進行の中で使い、「問題間隔」は1問が終わってから次の問題までに使います。</p>
+    <label>音名とオクターブ番号の読み上げ間隔（秒）<input id="octaveGap" type="number" min="0" step="0.1" value="0.2"></label>
     <label>読み上げ全体<select id="speech"><option value="on">ON</option><option value="off">OFF</option></select></label>
     <div class="speech-options"><h3>モード別・項目別の読み上げ設定</h3><p class="small">各項目のチェックで読み上げをON/OFF、日本語・Englishで読み上げ言語を選べます。音名ではオクターブ番号も個別に設定できます。</p><div id="speechModes"></div></div>
-    <label>読み上げ速度 <output id="speedValue">0.50</output><input id="speed" type="range" min="0.1" max="2.0" step="0.05" value="0.5"></label>
+    <label>読み上げ速度 <output id="speedValue">0.50</output><input id="speed" type="range" min="0.1" max="4.0" step="0.01" value="0.5"></label>
   </section>
   <section class="panel result">
     <div id="answer" aria-live="polite">音源を読み込んでいます</div><div id="instrumentLabel">楽器：---</div><div id="status">準備中</div><div id="remaining">残り時間：--:--</div>

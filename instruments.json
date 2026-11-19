@@ -752,22 +752,6 @@
     "supportsChords": true
   },
   {
-    "id": "0:47",
-    "name": "ティンパニ",
-    "nameJa": "ティンパニ",
-    "presetName": "Timpani",
-    "bank": 0,
-    "program": 47,
-    "category": "音程のある打楽器",
-    "range": [
-      38,
-      60
-    ],
-    "family": "poly",
-    "guitarVoicing": false,
-    "supportsChords": false
-  },
-  {
     "id": "0:48",
     "name": "ファストストリングス",
     "nameJa": "ファストストリングス",
