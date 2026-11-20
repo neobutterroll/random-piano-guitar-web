@@ -132,6 +132,13 @@ function noteSpeech(note,mode){const lang=speechLang(mode,'notes'),pitch=note%12
 // v9: one utterance at a time; never let a stalled iOS speech event block the next question.
 let activeSpeech=null;
 let speechFailures=0;
+let speechRequestNumber=0;
+function recoverAfterSpeech(){
+  if(!playing||!audioContext)return;
+  const state=audioContext.state;
+  audioDiagnostic('読み上げ後 AudioContext='+state);
+  if(state!=='running')audioContext.resume().then(()=>audioDiagnostic('再開結果 '+audioContext.state)).catch(e=>audioDiagnostic('再開失敗 '+e.message));
+}
 function speechDiagnostic(message){
   console.info('[v9 speech]',message);
   const target=document.getElementById('speechDiagnostic');
@@ -152,6 +159,9 @@ function speak(text,lang='ja-JP'){
     // A previous utterance that failed to finish must not overlap the next one.
     if(activeSpeech)cancelActiveSpeech();
     const synth=window.speechSynthesis;
+    const request=++speechRequestNumber;
+    const requestedAt=performance.now();
+    speechDiagnostic(`音声${request} 発行 / AudioContext=${audioContext?.state}`);
     const u=new SpeechSynthesisUtterance(String(text));
     u.lang=lang;u.rate=Number(el.speed.value);u.volume=Number(el.speechVolume.value)/100;
     let finished=false,started=false,startTimer=null,endTimer=null;
@@ -161,17 +171,19 @@ function speak(text,lang='ja-JP'){
       clearTimeout(startTimer);clearTimeout(endTimer);
       u.onstart=u.onend=u.onerror=null;
       if(activeSpeech===state)activeSpeech=null;
-      audioDiagnostic(`読み上げ終了：${reason} / AudioContext=${audioContext?.state||'なし'}`);
+      const elapsed=((performance.now()-requestedAt)/1000).toFixed(2);
+      audioDiagnostic(`音声${request} ${reason} ${elapsed}秒 / AudioContext=${audioContext?.state}`);
+      recoverAfterSpeech();
       if(reason!=='完了'&&reason!=='停止によりキャンセル'){
         speechFailures++;speechDiagnostic(`${reason}（累計${speechFailures}回）`);
-      }else if(reason==='完了')speechDiagnostic('正常終了');
+      }else if(reason==='完了')speechDiagnostic(`音声${request} 正常終了（合計${elapsed}秒）`);
       resolve();
     }};
     activeSpeech=state;
     u.onstart=()=>{
       if(finished)return;
       started=true;clearTimeout(startTimer);
-      speechDiagnostic('読み上げ中');
+      speechDiagnostic(`音声${request} 開始待ち${((performance.now()-requestedAt)/1000).toFixed(2)}秒 / AudioContext=${audioContext?.state}`);
       // Fail safe only: actual completion is governed by onend.
       const limit=Math.min(12000,Math.max(4000,1800+String(text).length*250/Math.max(.4,u.rate)));
       endTimer=setTimeout(()=>{
@@ -291,7 +303,7 @@ function restoreAudioIfNeeded(){
   updateMediaSession(true);
 }
 
-function primeSpeech(){if(!('speechSynthesis'in window))return;try{const s=window.speechSynthesis,u=new SpeechSynthesisUtterance('あ');u.lang='ja-JP';u.volume=0.01;s.cancel();s.speak(u);speechPrimePromise=new Promise(resolve=>{let done=false;const finish=()=>{if(done)return;done=true;clearTimeout(t);resolve();};u.onend=finish;u.onerror=finish;const t=setTimeout(finish,1800);});}catch(_){speechPrimePromise=Promise.resolve();}}
+function primeSpeech(){speechDiagnostic('初期化開始 / AudioContext='+audioContext?.state);if(!('speechSynthesis'in window))return;try{const s=window.speechSynthesis,u=new SpeechSynthesisUtterance('あ');u.lang='ja-JP';u.volume=0.01;s.cancel();s.speak(u);speechPrimePromise=new Promise(resolve=>{let done=false;const finish=()=>{if(done)return;done=true;clearTimeout(t);resolve();};u.onend=finish;u.onerror=finish;const t=setTimeout(finish,1800);});}catch(_){speechPrimePromise=Promise.resolve();}}
 function formatRemaining(ms){const s=Math.max(0,Math.ceil(ms/1000));return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;}
 function updateTimer(){const left=endAt-Date.now();el.remaining.textContent='残り時間：'+formatRemaining(left);if(left<=0&&playing)stopSession('時間終了');}
 async function runSingle(token){const q=generateSingle();setDisplayLines([noteName(q.note)],q.inst,'単音を再生中');await playSingleFor(q.inst,q.note,durationSec*1000,token);if(token!==runToken)return;await speakNotes([q.note],'0');await speakInstrument(q.inst,'0');if(token===runToken)await sleep(questionGapSec*1000);}
