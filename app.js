@@ -84,6 +84,36 @@ async function fetchWithProgress(url){
   const out=new Uint8Array(loaded);let offset=0;for(const c of chunks){out.set(c,offset);offset+=c.length;}return out.buffer;
 }
 async function loadSoundBank(){if(loadingPromise)return loadingPromise;loadingPromise=(async()=>{setLoadProgress(1,'音源の読み込みを準備中…');const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)throw new Error('このブラウザはWeb Audio APIに対応していません');audioContext=new Ctx({latencyHint:'interactive'});const workletURL='https://cdn.jsdelivr.net/npm/spessasynth_lib@4.4.0/dist/spessasynth_processor.min.js';setLoadProgress(3,'音源エンジンを準備中…');await audioContext.audioWorklet.addModule(workletURL);synth=new WorkletSynthesizer(audioContext);synth.connect(audioContext.destination);await synth.isReady;const compressed=await fetchWithProgress('./assets/GeneralUser-GS.sf2.gz');setLoadProgress(78,'SoundFontを展開中…');if(!('DecompressionStream'in window))throw new Error('このブラウザはgzip展開に対応していません');const stream=new Blob([compressed]).stream().pipeThrough(new DecompressionStream('gzip'));const bank=await new Response(stream).arrayBuffer();setLoadProgress(86,'261プリセットを含むSoundFontを登録中…');await synth.soundBankManager.addSoundBank(bank,'GeneralUser-GS');try{synth.controllerChange(0,0,0);synth.controllerChange(0,32,0);synth.programChange(0,0);}catch(_){}setLoadProgress(100,'音源：GeneralUser GS 読み込み完了');soundLoaded=true;el.start.disabled=false;setTimeout(()=>document.querySelector('.loading-area')?.classList.add('hidden'),1200);return true;})();return loadingPromise;}
+// v10: record audio commands and audio context transitions.
+let audioQuestionNumber=0;
+const audioEvents=[];
+function audioDiagnostic(message){
+  const stamp=(performance.now()/1000).toFixed(2);
+  audioEvents.push(`${stamp}s ${message}`);
+  if(audioEvents.length>12)audioEvents.shift();
+  const node=document.getElementById('audioDiagnostic');
+  if(node)node.textContent='再生診断：'+audioEvents.slice(-5).join(' | ');
+  console.info('[v10 audio]',message);
+}
+async function ensureAudioRunning(token){
+  if(token!==runToken)return false;
+  if(audioContext.state!=='running'){
+    audioDiagnostic('AudioContext '+audioContext.state+' → resume');
+    await audioContext.resume();
+  }
+  if(token!==runToken)return false;
+  if(audioContext.state!=='running'){
+    audioDiagnostic('再開後も '+audioContext.state);
+    return false;
+  }
+  return true;
+}
+function flushPreviousSound(){
+  // MIDI all-sounds-off and all-notes-off before a new question.
+  try{synth.controllerChange(0,120,0);}catch(_){}
+  try{synth.controllerChange(0,123,0);}catch(_){}
+  activeNotes=[];
+}
 function selectPreset(inst){if(!synth)throw new Error('音源エンジンが準備できていません');synth.controllerChange(0,0,inst.bank);synth.controllerChange(0,32,0);synth.programChange(0,inst.program);synth.controllerChange(0,7,Math.round(Number(el.instrumentVolume.value)*1.27));}
 function noteOn(note){synth.noteOn(0,note,100);activeNotes.push(note);}
 function noteOff(note){try{synth.noteOff(0,note);}catch(_){}activeNotes=activeNotes.filter(x=>x!==note);}
@@ -135,6 +165,7 @@ function speak(text,lang='ja-JP'){
       clearTimeout(startTimer);clearTimeout(endTimer);
       u.onstart=u.onend=u.onerror=null;
       if(activeSpeech===state)activeSpeech=null;
+      audioDiagnostic(`読み上げ終了：${reason} / AudioContext=${audioContext?.state||'なし'}`);
       if(reason!=='完了'&&reason!=='停止によりキャンセル'){
         speechFailures++;speechDiagnostic(`${reason}（累計${speechFailures}回）`);
       }else if(reason==='完了')speechDiagnostic('正常終了');
@@ -226,8 +257,23 @@ function generateMelody(){
   return {inst,notes,key,scaleName};
 }
 function generateProgressionChord(data,inst,key){const [offset,type,degree,spoken]=data,root=(key+offset)%12,intervals=D.CHORD_TYPES[type];if(inst.guitarVoicing){const list=guitarVoicings(root,intervals,0,inst,12);if(list.length){const v=pick(list);return {name:type,root,inversion:0,notes:v.notes,frets:v.frets,degree,spoken};}}return {name:type,root,inversion:0,notes:genericChordNotes(root,intervals,inst,0),frets:null,degree,spoken};}
-async function playSingleFor(inst,note,ms,token){if(token!==runToken)return;selectPreset(inst);await audioContext.resume();noteOn(note);await sleep(ms);if(token===runToken)noteOff(note);}
-async function playChordFor(inst,chord,ms,token,mode,displayTitle){if(token!==runToken)return;selectPreset(inst);await audioContext.resume();const notes=chord.notes;if((inst.family==='mono'||inst.guitarVoicing)&&!chord.frets){const each=Math.max(140,Math.min(320,ms/Math.max(1,notes.length)));for(let i=0;i<notes.length;i++){if(token!==runToken)return;if(mode!=='3')setChordDisplay(chord,inst,i,displayTitle||'アルペジオ再生中');noteOn(notes[i]);await sleep(each);noteOff(notes[i]);if(i<notes.length-1)await sleep(45);}return;}if(chord.frets){for(let i=0;i<notes.length;i++){if(token!==runToken)return;if(mode!=='3')setChordDisplay(chord,inst,i,'コードをストローク中');noteOn(notes[i]);await sleep(28);}await sleep(ms);if(token===runToken)stopAllNotes();return;}for(const n of notes)noteOn(n);await sleep(ms);if(token===runToken)stopAllNotes();}
+async function playSingleFor(inst,note,ms,token){
+  if(token!==runToken)return;
+  const question=++audioQuestionNumber;
+  audioDiagnostic(`問${question} 準備 ${noteName(note)} (${audioContext.state})`);
+  if(!await ensureAudioRunning(token))return;
+  flushPreviousSound();
+  selectPreset(inst);
+  if(token!==runToken)return;
+  audioDiagnostic(`問${question} noteOn ${noteName(note)} (${audioContext.state})`);
+  noteOn(note);
+  try{await sleep(ms);}
+  finally{
+    noteOff(note);
+    audioDiagnostic(`問${question} noteOff (${audioContext.state})`);
+  }
+}
+async function playChordFor(inst,chord,ms,token,mode,displayTitle){if(token!==runToken)return;if(!await ensureAudioRunning(token))return;flushPreviousSound();selectPreset(inst);const notes=chord.notes;if((inst.family==='mono'||inst.guitarVoicing)&&!chord.frets){const each=Math.max(140,Math.min(320,ms/Math.max(1,notes.length)));for(let i=0;i<notes.length;i++){if(token!==runToken)return;if(mode!=='3')setChordDisplay(chord,inst,i,displayTitle||'アルペジオ再生中');noteOn(notes[i]);await sleep(each);noteOff(notes[i]);if(i<notes.length-1)await sleep(45);}return;}if(chord.frets){for(let i=0;i<notes.length;i++){if(token!==runToken)return;if(mode!=='3')setChordDisplay(chord,inst,i,'コードをストローク中');noteOn(notes[i]);await sleep(28);}await sleep(ms);if(token===runToken)stopAllNotes();return;}for(const n of notes)noteOn(n);await sleep(ms);if(token===runToken)stopAllNotes();}
 function requestWakeLock(){if(!('wakeLock'in navigator))return;navigator.wakeLock.request('screen').then(x=>{wakeLock=x;x.addEventListener('release',()=>wakeLock=null);}).catch(()=>{});}
 async function releaseWakeLock(){if(wakeLock){try{await wakeLock.release();}catch(_){}wakeLock=null;}}
 function configureIOSAudio(){try{if(navigator.audioSession)navigator.audioSession.type='playback';}catch(_){}}
@@ -290,8 +336,8 @@ async function runProgression(token){
 }
 async function sessionLoop(token){while(playing&&token===runToken&&Date.now()<endAt){switch(el.mode.value){case'0':await runSingle(token);break;case'1':await runChord(token);break;case'2':await runInterval(token);break;case'3':await runProgression(token);break;case'4':await runMelody(token);break;}}if(token===runToken&&playing)stopSession('時間終了');}
 function validateSettings(){const minutes=Number(el.minutes.value),duration=Number(el.duration.value),soundGap=Number(el.soundGap.value),questionGap=Number(el.questionGap.value);if(!Number.isFinite(minutes)||minutes<0.1||minutes>600)throw new Error('再生時間は0.1〜600分で指定してください');if(!Number.isFinite(duration)||duration<=0)throw new Error('音の長さは0秒より大きくしてください');if(!Number.isFinite(Number(el.octaveGap.value))||Number(el.octaveGap.value)<0)throw new Error('音名とオクターブ番号の間隔は0秒以上にしてください');if(!Number.isFinite(soundGap)||soundGap<0||!Number.isFinite(questionGap)||questionGap<0)throw new Error('間隔は0秒以上で指定してください');if(!selectedInstrumentPool().some(x=>{try{getSelectedRange(x);return true;}catch(_){return false;}}))throw new Error('選択した音域に対応する楽器がありません');if(['1','3'].includes(el.mode.value)&&!selectedInstrumentPool().some(x=>{try{const [a,b]=getSelectedRange(x);return chordEligible(x)&&b-a>=12;}catch(_){return false;}}))throw new Error('コード演奏に対応した楽器を選択してください');if(el.mode.value==='4'&&!selectedInstrumentPool().some(x=>{try{getRangeForMelody(x);return true;}catch(_){return false;}}))throw new Error('選択した楽器とメロディ音域が一致しません');if(el.mode.value==='3'&&el.progressionKeyMode.value==='1')parseKeyText(el.progressionKey.value);durationSec=duration;soundGapSec=soundGap;questionGapSec=questionGap;return minutes;}
-async function startSession(){if(playing||!soundLoaded)return;configureIOSAudio();if(el.speech.value==='on')primeSpeech();let minutes;try{minutes=validateSettings();}catch(e){el.status.textContent=e.message;return;}requestWakeLock();el.start.disabled=true;el.stop.disabled=true;try{await audioContext.resume();if(el.speech.value==='on')await speechPrimePromise;playing=true;updateMediaSession(true);runToken++;const token=runToken;endAt=Date.now()+minutes*60000;previousNote=-1;el.stop.disabled=false;el.status.textContent='トレーニング中';timerTicker=setInterval(updateTimer,250);updateTimer();sessionLoop(token).catch(e=>{if(token===runToken)stopSession('再生エラー：'+e.message);});}catch(e){el.status.textContent='再生準備エラー：'+e.message;el.start.disabled=false;el.stop.disabled=true;releaseWakeLock();}}
-function stopSession(reason='停止しました'){if(!playing&&el.start.disabled===false)return;playing=false;updateMediaSession(false);runToken++;clearTimers();releaseWakeLock();if(timerTicker){clearInterval(timerTicker);timerTicker=null;}stopAllNotes();cancelActiveSpeech();try{audioContext?.suspend();}catch(_){}el.start.disabled=!soundLoaded;el.stop.disabled=true;el.status.textContent=reason;el.remaining.textContent='残り時間：00:00';if(reason==='時間終了')el.answer.textContent='終了';}
+async function startSession(){if(playing||!soundLoaded)return;configureIOSAudio();if(el.speech.value==='on')primeSpeech();let minutes;try{minutes=validateSettings();}catch(e){el.status.textContent=e.message;return;}requestWakeLock();el.start.disabled=true;el.stop.disabled=true;try{await audioContext.resume();if(el.speech.value==='on')await speechPrimePromise;playing=true;audioQuestionNumber=0;audioEvents.length=0;updateMediaSession(true);runToken++;const token=runToken;endAt=Date.now()+minutes*60000;previousNote=-1;el.stop.disabled=false;el.status.textContent='トレーニング中';timerTicker=setInterval(updateTimer,250);updateTimer();sessionLoop(token).catch(e=>{if(token===runToken)stopSession('再生エラー：'+e.message);});}catch(e){el.status.textContent='再生準備エラー：'+e.message;el.start.disabled=false;el.stop.disabled=true;releaseWakeLock();}}
+function stopSession(reason='停止しました'){if(!playing&&el.start.disabled===false)return;playing=false;updateMediaSession(false);runToken++;clearTimers();releaseWakeLock();if(timerTicker){clearInterval(timerTicker);timerTicker=null;}stopAllNotes();flushPreviousSound();cancelActiveSpeech();try{audioContext?.suspend();}catch(_){}el.start.disabled=!soundLoaded;el.stop.disabled=true;el.status.textContent=reason;el.remaining.textContent='残り時間：00:00';if(reason==='時間終了')el.answer.textContent='終了';}
 
 el.instrument.addEventListener('change',()=>{updateSettingsVisibility();updateInstrumentRange();});el.mode.addEventListener('change',updateSettingsVisibility);el.range.addEventListener('change',updateSettingsVisibility);el.melodyKeyMode.addEventListener('change',updateSettingsVisibility);el.melodyScaleMode.addEventListener('change',updateSettingsVisibility);el.melodyCategory.addEventListener('change',updateMelodyScales);el.progressionKeyMode.addEventListener('change',updateSettingsVisibility);for(const [id,output] of [['instrumentVolume','instrumentVolumeValue'],['speechVolume','speechVolumeValue']])el[id].addEventListener('input',()=>$(output).textContent=el[id].value+'%');el.speed.addEventListener('input',()=>el.speedValue.textContent=Number(el.speed.value).toFixed(1));el.start.addEventListener('click',startSession);el.stop.addEventListener('click',()=>stopSession('停止しました'));
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&playing){restoreAudioIfNeeded();requestWakeLock();}});
