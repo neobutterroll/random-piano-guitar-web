@@ -103,7 +103,70 @@ function speechLang(mode,part){return $(`speech-lang-${mode}-${part}`)?.value===
 function pitchText(pitch,lang){if(lang==='en-US')return D.ENGLISH_SPEECH_NAMES[pitch];return D.JAPANESE_SPEECH_NAMES[pitch];}
 async function speakPitch(pitch,lang){if(lang==='en-US'&&[4,5,9].includes(pitch)){await speak(({4:'イー',5:'エフ',9:'エー'})[pitch],'ja-JP');}else await speak(pitchText(pitch,lang),lang);}
 function noteSpeech(note,mode){const lang=speechLang(mode,'notes'),pitch=note%12,oct=Math.floor(note/12)-1;return {text:pitchText(pitch,lang),lang,octave:$(`speech-octave-${mode}`)?.checked?String(oct):null};}
-function speak(text,lang='ja-JP'){if(el.speech.value!=='on'||!text)return Promise.resolve();if(!('speechSynthesis'in window)||!('SpeechSynthesisUtterance'in window))return Promise.resolve();return new Promise(resolve=>{const u=new SpeechSynthesisUtterance(text);u.lang=lang;u.rate=Number(el.speed.value);u.volume=Number(el.speechVolume.value)/100;let done=false;let watchdog;const finish=()=>{if(done)return;done=true;clearTimeout(watchdog);resolve();};u.onend=finish;u.onerror=finish;watchdog=setTimeout(()=>{try{speechSynthesis.cancel();}catch(_){}finish();},20000);try{speechSynthesis.resume();speechSynthesis.speak(u);}catch(_){finish();}});}
+// v9: one utterance at a time; never let a stalled iOS speech event block the next question.
+let activeSpeech=null;
+let speechFailures=0;
+function speechDiagnostic(message){
+  console.info('[v9 speech]',message);
+  const target=document.getElementById('speechDiagnostic');
+  if(target)target.textContent='読み上げ診断：'+message;
+}
+function cancelActiveSpeech(){
+  const current=activeSpeech;
+  if(current)current.finish('停止によりキャンセル');
+  try{window.speechSynthesis?.cancel();}catch(_){}
+}
+function speak(text,lang='ja-JP'){
+  if(el.speech.value!=='on'||!text)return Promise.resolve();
+  if(!('speechSynthesis'in window)||!('SpeechSynthesisUtterance'in window)){
+    speechDiagnostic('このブラウザでは読み上げを利用できません');
+    return Promise.resolve();
+  }
+  return new Promise(resolve=>{
+    // A previous utterance that failed to finish must not overlap the next one.
+    if(activeSpeech)cancelActiveSpeech();
+    const synth=window.speechSynthesis;
+    const u=new SpeechSynthesisUtterance(String(text));
+    u.lang=lang;u.rate=Number(el.speed.value);u.volume=Number(el.speechVolume.value)/100;
+    let finished=false,started=false,startTimer=null,endTimer=null;
+    const state={finish:(reason)=>{
+      if(finished)return;
+      finished=true;
+      clearTimeout(startTimer);clearTimeout(endTimer);
+      u.onstart=u.onend=u.onerror=null;
+      if(activeSpeech===state)activeSpeech=null;
+      if(reason!=='完了'&&reason!=='停止によりキャンセル'){
+        speechFailures++;speechDiagnostic(`${reason}（累計${speechFailures}回）`);
+      }else if(reason==='完了')speechDiagnostic('正常終了');
+      resolve();
+    }};
+    activeSpeech=state;
+    u.onstart=()=>{
+      if(finished)return;
+      started=true;clearTimeout(startTimer);
+      speechDiagnostic('読み上げ中');
+      // Fail safe only: actual completion is governed by onend.
+      const limit=Math.min(12000,Math.max(4000,1800+String(text).length*250/Math.max(.4,u.rate)));
+      endTimer=setTimeout(()=>{
+        if(finished)return;
+        try{synth.cancel();}catch(_){}
+        state.finish('終了通知が届かずタイムアウト');
+      },limit);
+    };
+    u.onend=()=>state.finish('完了');
+    u.onerror=e=>state.finish('読み上げエラー：'+(e.error||'不明'));
+    startTimer=setTimeout(()=>{
+      if(finished||started)return;
+      try{synth.cancel();}catch(_){}
+      state.finish('開始通知が届かずタイムアウト');
+    },3000);
+    try{
+      if(synth.paused)synth.resume();
+      synth.speak(u);
+      if(synth.paused)synth.resume();
+    }catch(e){state.finish('開始例外：'+e.message);}
+  });
+}
 async function speakPart(mode,part,text){if(speechEnabled(mode,part))await speak(text,speechLang(mode,part));}
 async function speakInstrument(inst,mode){const ja=inst.nameJa||inst.name;const isJapanese=/[ぁ-んァ-ヶ一-龠]/.test(ja||'');const name=isJapanese?ja:(inst.presetName||inst.name||ja);await speakPart(mode,'instrument',name);}
 async function speakNotes(notes,mode){if(!speechEnabled(mode,'notes'))return;for(const n of notes){const spec=noteSpeech(n,mode);const gap=Number(el.octaveGap.value);if(spec.octave!==null&&gap===0){ // One utterance avoids an artificial pause between pitch and octave.
@@ -186,7 +249,7 @@ function restoreAudioIfNeeded(){
   updateMediaSession(true);
 }
 
-function primeSpeech(){if(!('speechSynthesis'in window))return;try{const s=window.speechSynthesis,u=new SpeechSynthesisUtterance('あ');u.lang='ja-JP';u.volume=0.01;s.cancel();s.speak(u);speechPrimePromise=new Promise(resolve=>{let done=false;const finish=()=>{if(done)return;done=true;clearTimeout(t);resolve();};u.onend=finish;u.onerror=finish;const t=setTimeout(finish,1500);});}catch(_){speechPrimePromise=Promise.resolve();}}
+function primeSpeech(){if(!('speechSynthesis'in window))return;try{const s=window.speechSynthesis,u=new SpeechSynthesisUtterance('あ');u.lang='ja-JP';u.volume=0.01;s.cancel();s.speak(u);speechPrimePromise=new Promise(resolve=>{let done=false;const finish=()=>{if(done)return;done=true;clearTimeout(t);resolve();};u.onend=finish;u.onerror=finish;const t=setTimeout(finish,1800);});}catch(_){speechPrimePromise=Promise.resolve();}}
 function formatRemaining(ms){const s=Math.max(0,Math.ceil(ms/1000));return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;}
 function updateTimer(){const left=endAt-Date.now();el.remaining.textContent='残り時間：'+formatRemaining(left);if(left<=0&&playing)stopSession('時間終了');}
 async function runSingle(token){const q=generateSingle();setDisplayLines([noteName(q.note)],q.inst,'単音を再生中');await playSingleFor(q.inst,q.note,durationSec*1000,token);if(token!==runToken)return;await speakNotes([q.note],'0');await speakInstrument(q.inst,'0');if(token===runToken)await sleep(questionGapSec*1000);}
@@ -228,7 +291,7 @@ async function runProgression(token){
 async function sessionLoop(token){while(playing&&token===runToken&&Date.now()<endAt){switch(el.mode.value){case'0':await runSingle(token);break;case'1':await runChord(token);break;case'2':await runInterval(token);break;case'3':await runProgression(token);break;case'4':await runMelody(token);break;}}if(token===runToken&&playing)stopSession('時間終了');}
 function validateSettings(){const minutes=Number(el.minutes.value),duration=Number(el.duration.value),soundGap=Number(el.soundGap.value),questionGap=Number(el.questionGap.value);if(!Number.isFinite(minutes)||minutes<0.1||minutes>600)throw new Error('再生時間は0.1〜600分で指定してください');if(!Number.isFinite(duration)||duration<=0)throw new Error('音の長さは0秒より大きくしてください');if(!Number.isFinite(Number(el.octaveGap.value))||Number(el.octaveGap.value)<0)throw new Error('音名とオクターブ番号の間隔は0秒以上にしてください');if(!Number.isFinite(soundGap)||soundGap<0||!Number.isFinite(questionGap)||questionGap<0)throw new Error('間隔は0秒以上で指定してください');if(!selectedInstrumentPool().some(x=>{try{getSelectedRange(x);return true;}catch(_){return false;}}))throw new Error('選択した音域に対応する楽器がありません');if(['1','3'].includes(el.mode.value)&&!selectedInstrumentPool().some(x=>{try{const [a,b]=getSelectedRange(x);return chordEligible(x)&&b-a>=12;}catch(_){return false;}}))throw new Error('コード演奏に対応した楽器を選択してください');if(el.mode.value==='4'&&!selectedInstrumentPool().some(x=>{try{getRangeForMelody(x);return true;}catch(_){return false;}}))throw new Error('選択した楽器とメロディ音域が一致しません');if(el.mode.value==='3'&&el.progressionKeyMode.value==='1')parseKeyText(el.progressionKey.value);durationSec=duration;soundGapSec=soundGap;questionGapSec=questionGap;return minutes;}
 async function startSession(){if(playing||!soundLoaded)return;configureIOSAudio();if(el.speech.value==='on')primeSpeech();let minutes;try{minutes=validateSettings();}catch(e){el.status.textContent=e.message;return;}requestWakeLock();el.start.disabled=true;el.stop.disabled=true;try{await audioContext.resume();if(el.speech.value==='on')await speechPrimePromise;playing=true;updateMediaSession(true);runToken++;const token=runToken;endAt=Date.now()+minutes*60000;previousNote=-1;el.stop.disabled=false;el.status.textContent='トレーニング中';timerTicker=setInterval(updateTimer,250);updateTimer();sessionLoop(token).catch(e=>{if(token===runToken)stopSession('再生エラー：'+e.message);});}catch(e){el.status.textContent='再生準備エラー：'+e.message;el.start.disabled=false;el.stop.disabled=true;releaseWakeLock();}}
-function stopSession(reason='停止しました'){if(!playing&&el.start.disabled===false)return;playing=false;updateMediaSession(false);runToken++;clearTimers();releaseWakeLock();if(timerTicker){clearInterval(timerTicker);timerTicker=null;}stopAllNotes();try{speechSynthesis.cancel();}catch(_){}try{audioContext?.suspend();}catch(_){}el.start.disabled=!soundLoaded;el.stop.disabled=true;el.status.textContent=reason;el.remaining.textContent='残り時間：00:00';if(reason==='時間終了')el.answer.textContent='終了';}
+function stopSession(reason='停止しました'){if(!playing&&el.start.disabled===false)return;playing=false;updateMediaSession(false);runToken++;clearTimers();releaseWakeLock();if(timerTicker){clearInterval(timerTicker);timerTicker=null;}stopAllNotes();cancelActiveSpeech();try{audioContext?.suspend();}catch(_){}el.start.disabled=!soundLoaded;el.stop.disabled=true;el.status.textContent=reason;el.remaining.textContent='残り時間：00:00';if(reason==='時間終了')el.answer.textContent='終了';}
 
 el.instrument.addEventListener('change',()=>{updateSettingsVisibility();updateInstrumentRange();});el.mode.addEventListener('change',updateSettingsVisibility);el.range.addEventListener('change',updateSettingsVisibility);el.melodyKeyMode.addEventListener('change',updateSettingsVisibility);el.melodyScaleMode.addEventListener('change',updateSettingsVisibility);el.melodyCategory.addEventListener('change',updateMelodyScales);el.progressionKeyMode.addEventListener('change',updateSettingsVisibility);for(const [id,output] of [['instrumentVolume','instrumentVolumeValue'],['speechVolume','speechVolumeValue']])el[id].addEventListener('input',()=>$(output).textContent=el[id].value+'%');el.speed.addEventListener('input',()=>el.speedValue.textContent=Number(el.speed.value).toFixed(1));el.start.addEventListener('click',startSession);el.stop.addEventListener('click',()=>stopSession('停止しました'));
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&playing){restoreAudioIfNeeded();requestWakeLock();}});
