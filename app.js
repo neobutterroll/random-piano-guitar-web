@@ -83,8 +83,24 @@ async function fetchWithProgress(url){
   }
   const out=new Uint8Array(loaded);let offset=0;for(const c of chunks){out.set(c,offset);offset+=c.length;}return out.buffer;
 }
-async function loadSoundBank(){if(loadingPromise)return loadingPromise;loadingPromise=(async()=>{setLoadProgress(1,'音源の読み込みを準備中…');const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)throw new Error('このブラウザはWeb Audio APIに対応していません');audioContext=new Ctx({latencyHint:'interactive'});const workletURL='https://cdn.jsdelivr.net/npm/spessasynth_lib@4.4.0/dist/spessasynth_processor.min.js';setLoadProgress(3,'音源エンジンを準備中…');await audioContext.audioWorklet.addModule(workletURL);synth=new WorkletSynthesizer(audioContext);synth.connect(audioContext.destination);await synth.isReady;const compressed=await fetchWithProgress('./assets/GeneralUser-GS.sf2.gz');setLoadProgress(78,'SoundFontを展開中…');if(!('DecompressionStream'in window))throw new Error('このブラウザはgzip展開に対応していません');const stream=new Blob([compressed]).stream().pipeThrough(new DecompressionStream('gzip'));const bank=await new Response(stream).arrayBuffer();setLoadProgress(86,'261プリセットを含むSoundFontを登録中…');await synth.soundBankManager.addSoundBank(bank,'GeneralUser-GS');try{synth.controllerChange(0,0,0);synth.controllerChange(0,32,0);synth.programChange(0,0);}catch(_){}setLoadProgress(100,'音源：GeneralUser GS 読み込み完了');soundLoaded=true;el.start.disabled=false;setTimeout(()=>document.querySelector('.loading-area')?.classList.add('hidden'),1200);return true;})();return loadingPromise;}
+async function loadSoundBank(){if(loadingPromise)return loadingPromise;loadingPromise=(async()=>{setLoadProgress(1,'音源の読み込みを準備中…');const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)throw new Error('このブラウザはWeb Audio APIに対応していません');audioContext=new Ctx({latencyHint:'interactive'});const workletURL='https://cdn.jsdelivr.net/npm/spessasynth_lib@4.4.0/dist/spessasynth_processor.min.js';setLoadProgress(3,'音源エンジンを準備中…');await audioContext.audioWorklet.addModule(workletURL);synth=new WorkletSynthesizer(audioContext);synth.connect(audioContext.destination);
+try{
+  diagnosticAnalyser=audioContext.createAnalyser();
+  diagnosticAnalyser.fftSize=2048;
+  synth.connect(diagnosticAnalyser);
+}catch(e){console.warn('診断アナライザー接続不可',e);}
+await synth.isReady;const compressed=await fetchWithProgress('./assets/GeneralUser-GS.sf2.gz');setLoadProgress(78,'SoundFontを展開中…');if(!('DecompressionStream'in window))throw new Error('このブラウザはgzip展開に対応していません');const stream=new Blob([compressed]).stream().pipeThrough(new DecompressionStream('gzip'));const bank=await new Response(stream).arrayBuffer();setLoadProgress(86,'261プリセットを含むSoundFontを登録中…');await synth.soundBankManager.addSoundBank(bank,'GeneralUser-GS');try{synth.controllerChange(0,0,0);synth.controllerChange(0,32,0);synth.programChange(0,0);}catch(_){}setLoadProgress(100,'音源：GeneralUser GS 読み込み完了');soundLoaded=true;el.start.disabled=false;setTimeout(()=>document.querySelector('.loading-area')?.classList.add('hidden'),1200);return true;})();return loadingPromise;}
 // v10: record audio commands and audio context transitions.
+let diagnosticAnalyser=null;
+function measureSynthSignal(){
+  if(!diagnosticAnalyser)return '計測不可';
+  const samples=new Float32Array(diagnosticAnalyser.fftSize);
+  diagnosticAnalyser.getFloatTimeDomainData(samples);
+  let sum=0;
+  for(const x of samples)sum+=x*x;
+  const rms=Math.sqrt(sum/samples.length);
+  return (20*Math.log10(Math.max(rms,0.000001))).toFixed(1)+' dBFS';
+}
 let audioQuestionNumber=0;
 const audioEvents=[];
 function audioDiagnostic(message){
@@ -275,8 +291,12 @@ async function playSingleFor(inst,note,ms,token){
   if(token!==runToken)return;
   audioDiagnostic(`問${question} noteOn ${noteName(note)} (${audioContext.state}) / 発音管理=${activeNotes.length}`);
   noteOn(note);
+  const sampleTimer=setTimeout(()=>{
+    if(token===runToken)audioDiagnostic(`問${question} 音源信号=${measureSynthSignal()} / Context=${audioContext.state}`);
+  },Math.min(220,Math.max(50,ms/3)));
   try{await sleep(ms);}
   finally{
+    clearTimeout(sampleTimer);
     noteOff(note);
     audioDiagnostic(`問${question} noteOff (${audioContext.state}) / 発音管理=${activeNotes.length}`);
   }
