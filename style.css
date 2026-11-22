@@ -52,3 +52,15 @@
 .melody-harmony-panel .progression-degree,.melody-harmony-panel .progression-bar {font-size:10px;line-height:1.2;overflow-wrap:anywhere;}
 .melody-harmony-panel .previous-question-chord {opacity:.64;border-style:dashed!important;}
 .melody-harmony-panel .melody-progression-title {overflow-wrap:anywhere;}
+
+/* Partial phrases are not labelled or framed as a complete named progression. */
+.melody-progression-fragment{border:0!important;box-shadow:none!important;background:transparent!important;padding:4px 0!important}
+.melody-progression-fragment .melody-progression-title{font-weight:500;opacity:.8}
+
+/* Independent instrument layers and the shared four-column progression layout */
+.orchestration-panel{margin:14px 0;padding:12px;background:#f2f6fc;border:1px solid #d3deee;border-radius:11px}
+.orchestration-panel h3{font-size:14px;margin:0 0 7px}
+.orchestration-panel .grid.two{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.orchestration-panel select{font-size:12px;min-width:0;width:100%}
+.result #answer.answer-progression{width:100%;min-width:0;align-items:stretch}
+.result #answer.answer-progression .melody-progression-chords{grid-template-columns:repeat(4,minmax(0,1fr))}

@@ -38,6 +38,20 @@
     <p class="small">コード進行方式は和声の流れに沿って旋律を作ります。伴奏ありでは独立したチャンネルで和音を鳴らします。演奏中の全小節のコード名・度数は下部の結果欄に表示されます。</p>
     <div class="grid two"><label>メロディ音量 <output id="melodyVolumeValue">80%</output><input id="melodyVolume" oninput="document.getElementById('melodyVolumeValue').value=this.value+'%'" type="range" min="0" max="100" step="1" value="80"></label><label>伴奏音量 <output id="accompanimentVolumeValue">85%</output><input id="accompanimentVolume" oninput="document.getElementById('accompanimentVolumeValue').value=this.value+'%'" type="range" min="0" max="100" step="1" value="85"></label></div>
     <p class="small">音量はメロディと伴奏を個別に調整できます。再生中も変更可能です。伴奏音量は「伴奏あり」の場合のみ有効です。</p>
+
+    <div class="orchestration-panel">
+      <h3>編成・楽器の選択</h3>
+      <p class="small">主旋律と伴奏を個別に選択できます。「追加なし」以外を選ぶと別のMIDIチャンネルで重ねて演奏します。追加旋律はオクターブ／和声音の対旋律、追加伴奏はベース／分散和音を担当します。</p>
+      <div class="grid two">
+        <label>主旋律の楽器<select id="leadInstrument"><option value="auto">共通の楽器設定に従う</option></select></label>
+        <label>主伴奏の楽器<select id="backingInstrument"><option value="auto">主旋律と同じ楽器</option></select></label>
+        <label>追加旋律 1<select id="leadLayer1"><option value="none">追加なし</option></select></label>
+        <label>追加旋律 2<select id="leadLayer2"><option value="none">追加なし</option></select></label>
+        <label>追加伴奏 1（ベース）<select id="backingLayer1"><option value="none">追加なし</option></select></label>
+        <label>追加伴奏 2（分散和音）<select id="backingLayer2"><option value="none">追加なし</option></select></label>
+      </div>
+      <p class="small">追加旋律は伴奏の有無に関係なく利用できます。追加伴奏は「伴奏あり」のときのみ鳴ります。音域外の音はその楽器では鳴らしません。</p>
+    </div>
     <label>伴奏の演奏方法<select id="melodyAccompStyle"><option value="auto">自動（楽曲の展開に応じて変更）</option><option value="block">ブロックコード</option><option value="arpeggio">アルペジオ</option><option value="broken">分散和音</option><option value="bass">ベース＋和音</option></select></label>
     <label>メロディの流れ<select id="melodyStyle"><option value="random">ランダム</option><option value="natural">音楽理論に沿った自然な流れ</option></select></label>
     <label>キーの設定<select id="melodyKeyMode"><option value="0">指定</option><option value="1">ランダム</option></select></label>
