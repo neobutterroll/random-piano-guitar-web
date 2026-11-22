@@ -15,3 +15,11 @@
 .panel .small{font-size:12px;line-height:1.6;color:#556477;margin:5px 0 12px}
 .panel label{line-height:1.55}
 @media(max-width:600px){.melody-chord-history .progression-item{min-width:70px}.progression-chord{font-size:15px}}
+
+/* Show the complete question's harmonic plan immediately, including every chord change. */
+.melody-harmony-panel{width:100%;margin-top:10px;min-width:0}
+.melody-harmony-panel .melody-chord-history{display:grid;grid-template-columns:repeat(auto-fit,minmax(76px,1fr));overflow:visible;flex-wrap:wrap;gap:5px;width:100%;padding:4px 0;max-width:none}
+.melody-harmony-panel .progression-item{min-width:0;max-width:none;padding:5px 3px;overflow-wrap:anywhere}
+.melody-harmony-panel .progression-chord{font-size:clamp(11px,3.3vw,16px)}
+.melody-harmony-panel .progression-degree{font-size:clamp(10px,2.9vw,13px)}
+@media(max-width:420px){.melody-harmony-panel .melody-chord-history{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}}
