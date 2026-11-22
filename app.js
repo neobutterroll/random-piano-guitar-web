@@ -109,7 +109,7 @@ function setDisplayLines(lines,instrument,status,kind='normal'){el.answer.replac
 // Do not infer chromaticism from the scale or add misleading "diatonic" labels.
 function musicalProgressionLabel(name){
  const raw=String(name||'').trim();
- if(!raw||raw==='ダイアトニック進行')return '音階構成音による和声';
+ if(!raw||raw==='ダイアトニック進行'||raw==='音階構成音による和声'||raw==='自動生成')return '名称未設定の進行';
  const techniques=[
   [/セカンダリードミナント|V\/ii|V\/V|属七の連鎖|ドミナントの連鎖|III7–VI7–II7–V7/, 'セカンダリードミナント'],
   [/バックドア/, 'バックドア進行'],
@@ -123,9 +123,18 @@ function musicalProgressionLabel(name){
  if(!match||raw===match[1]||raw.includes('（'+match[1]+'）'))return raw;
  return raw+'（'+match[1]+'）';
 }
+// Always describe the ACTUAL chords played, including partial named phrases.
+// A name alone can be misleading if a phrase branches before completion.
+function progressionWithDegrees(name,items){
+ const label=musicalProgressionLabel(name);
+ const degrees=(items||[]).map(c=>String(c?.degree||'').trim()).filter(Boolean);
+ const actual=degrees.join(' → ');
+ if(!actual)return label;
+ return label==='名称未設定の進行'?'度数進行：'+actual:label+'｜この区間：'+actual;
+}
 function setProgressionDisplay(keyText,name,chords,active,instrument,status){
  el.answer.replaceChildren();el.answer.className='answer-progression';
- const head=document.createElement('div');head.className='sequence-heading';head.textContent=`${keyText} / ${musicalProgressionLabel(name)}`;el.answer.append(head);
+ const head=document.createElement('div');head.className='sequence-heading';head.textContent=`${keyText} / ${progressionWithDegrees(name,chords)}`;el.answer.append(head);
  const row=document.createElement('div');row.className='progression-grid';
  chords.forEach((chord,i)=>{const item=document.createElement('div');item.className='progression-item'+(i===active?' progression-active':'');const name=document.createElement('div');name.className='progression-chord';name.textContent=chordLabel(chord);const degree=document.createElement('div');degree.className='progression-degree';degree.textContent=chord.degree;item.append(name,degree);row.append(item);});
  el.answer.append(row);el.instrumentLabel.textContent='楽器：'+instrument.name;el.status.textContent=status;
@@ -293,12 +302,12 @@ function chooseSongProgression(majorLike,minorLike,previous,lastChord,key,degree
  const chromatic=THEORY_PROGRESSIONS.filter(p=>majorLike?p.mode==='major':minorLike?p.mode==='minor':false);
  const extended=EXTENDED_PROGRESSION_LIBRARY.filter(p=>majorLike?p.mode==='major':minorLike?p.mode==='minor':false);
  const all=[...standard,...extended,...chromatic];
- if(!all.length)return {name:'音階構成音による和声',degrees:[0,3,4,0],types:[]};
+ if(!all.length)return {name:'名称未設定の進行',degrees:[0,3,4,0],types:[]};
  return weightedChoice(all,p=>{
   let w=standard.includes(p)?3.5:extended.includes(p)?2.4:1.4;
   if(/王道|カノン|I–V–vi–IV|循環/.test(p.name))w*=1.8;
   if(/セカンダリー|借用|バックドア|ドミナント/.test(p.name))w*=1.15;
-  if(previous&&p.name===previous.name)w*=0.35;
+  if(previous&&p.name===previous.name)w*=0.08;
   const first=progressionEntries(p,key,degrees)[0];
   return w*harmonicTransitionScore(lastChord,first,key);
  });
@@ -333,7 +342,7 @@ function melodyHarmony(scale,key,count,rhythm){
  const majorLike=degrees.length===7&&[0,2,4,5,7,9,11].every(x=>D.SCALES[scale].includes(x));
  const minorLike=degrees.length===7&&[0,2,3,5,7,8,10].every(x=>D.SCALES[scale].includes(x));
  if(!songHarmony||songHarmony.key!==key||songHarmony.scale!==scale){
-  songHarmony={key,scale,progression:null,progressionIndex:0,groupId:0,lastSlotId:null,cache:new Map(),harmonicPatterns:new Map(),previousProgression:null,lastChord:null,questionEnd:null};
+  songHarmony={key,scale,progression:null,progressionIndex:0,groupId:0,lastSlotId:null,cache:new Map(),harmonicPatterns:new Map(),previousProgression:null,lastChord:null,questionEnd:null,phraseChordCount:0,phraseTarget:0};
  }
  const h=songHarmony,result=[];
  const startBar=rhythm?.[0]?.measure??songMeasure;
@@ -343,16 +352,24 @@ function melodyHarmony(scale,key,count,rhythm){
   const slot=harmonicSlotForNote(r,measure,beats),slotId=measure+':'+slot;
   if(h.cache.has(slotId)){result.push(h.cache.get(slotId));continue;}
   const atQuestionStart=i===0&&h.questionEnd!==null&&slotId!==h.questionEnd;
-  const finished=!h.progression||h.progressionIndex>=(h.progression.chords?.length||h.progression.degrees.length);
-  // At a question boundary, sometimes branch into a different compatible
-  // progression. Continuing the previous phrase remains the more likely choice.
-  const branch=atQuestionStart&&!finished&&Math.random()<0.32;
-  if(finished||branch){
+  const length=h.progression?(h.progression.chords?.length||h.progression.degrees.length):0;
+  const finished=!h.progression||h.progressionIndex>=length;
+  // Musical phrases can end *inside* a question. Prefer 2-4 chord phrases;
+  // occasionally keep the full named pattern. A change is only made at a
+  // real harmonic slot (not at each melody note).
+  const phraseComplete=h.progression&&h.phraseChordCount>=h.phraseTarget;
+  const branch=atQuestionStart&&!finished&&Math.random()<0.18;
+  const change=finished||branch||phraseComplete;
+  if(change){
    const prior=h.progression;
    h.progression=chooseSongProgression(majorLike,minorLike,prior,h.lastChord,key,degrees);
-   h.progressionIndex=0;h.groupId++;
+   h.progressionIndex=0;h.groupId++;h.phraseChordCount=0;
+   const newLength=h.progression.chords?.length||h.progression.degrees.length;
+   // Weights: 2 chords 20%, 3 chords 35%, 4 chords 30%, full phrase 15%.
+   const choice=weightedChoice([{n:2,w:20},{n:3,w:35},{n:4,w:30},{n:newLength,w:15}],x=>x.w);
+   h.phraseTarget=Math.min(newLength,choice.n);
   }
-  const prog=h.progression,idx=h.progressionIndex++;
+  const prog=h.progression,idx=h.progressionIndex++;h.phraseChordCount++;
   const info=progressionEntries(prog,key,degrees)[idx];
   const inversion=Math.random()<0.25?1+Math.floor(Math.random()*Math.min(3,info.pcs.length-1)):0;
   const chord={...info,measure,slot,harmonicStep:h.groupId*1000+idx,inversion,
@@ -471,7 +488,7 @@ function displayMelodyChords(m,index){
   for(const group of groups){
    const wrapper=document.createElement('div');wrapper.className='melody-progression-group';
    const title=document.createElement('div');title.className='melody-progression-title';
-   title.textContent=musicalProgressionLabel(group.name);wrapper.append(title);
+   title.textContent=progressionWithDegrees(group.name,group.items)+'（この枠の範囲）';wrapper.append(title);
    const row=document.createElement('div');row.className='melody-progression-chords';
    for(const c of group.items){
     const item=document.createElement('div');item.className='progression-item';item.dataset.harmonyId=c.measure+':'+c.slot;

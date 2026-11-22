@@ -34,3 +34,12 @@
 .melody-progression-chords .progression-active .progression-degree{color:white}
 .melody-progression-chords .progression-chord{font-size:clamp(11px,3.4vw,16px);overflow-wrap:anywhere}
 @media(max-width:420px){.melody-progression-chords{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* Always show each named harmonic phrase as a bordered, wrapped block. */
+.result #answer.answer-sequence{width:100%;min-width:0;align-items:stretch}
+.result #answer .melody-harmony-panel{width:100%;min-width:0;max-width:100%;display:block;text-align:left;overflow:visible}
+.result #answer .melody-progression-group{display:block;width:100%;max-width:100%;min-width:0;margin:10px 0;border:2px solid #628ec8;border-radius:10px;padding:9px;background:#f3f7ff;overflow:hidden}
+.result #answer .melody-progression-title{display:block;font-size:13px;font-weight:700;color:#234d83;margin:0 0 7px}
+.result #answer .melody-progression-chords{display:grid;width:100%;grid-template-columns:repeat(auto-fill,minmax(min(100%,82px),1fr));gap:6px;min-width:0}
+.result #answer .melody-progression-chords .progression-item{min-width:0;width:100%;max-width:100%;overflow-wrap:anywhere}
+@media(max-width:420px){.result #answer .melody-progression-chords{grid-template-columns:repeat(3,minmax(0,1fr))}}
