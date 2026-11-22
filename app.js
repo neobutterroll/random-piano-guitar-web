@@ -6,7 +6,7 @@ const $ = id => document.getElementById(id);
 const el = {
   instrument:$('instrument'), mode:$('mode'), range:$('range'), customRange:$('customRange'), rangeMin:$('rangeMin'), rangeMax:$('rangeMax'),
   ordinaryRange:$('ordinaryRange'), instrumentRange:$('instrumentRange'), melodySettings:$('melodySettings'), melodySelection:$('melodySelection'), melodyStyle:$('melodyStyle'), melodyKeyMode:$('melodyKeyMode'), melodyKey:$('melodyKey'),
-  melodyScaleMode:$('melodyScaleMode'), melodyCategory:$('melodyCategory'), melodyScale:$('melodyScale'), melodyCount:$('melodyCount'), melodyRange:$('melodyRange'),
+  melodyScaleMode:$('melodyScaleMode'), melodyCategory:$('melodyCategory'), melodyScale:$('melodyScale'), melodyCount:$('melodyCount'), melodyRange:$('melodyRange'), melodyRhythm:$('melodyRhythm'), melodyLegato:$('melodyLegato'), melodyStaccato:$('melodyStaccato'), melodyPhrase:$('melodyPhrase'), melodyRests:$('melodyRests'), melodyTempo:$('melodyTempo'), melodyContinuity:$('melodyContinuity'),
   minutes:$('minutes'), instrumentVolume:$('instrumentVolume'), speechVolume:$('speechVolume'), octaveGap:$('octaveGap'), duration:$('duration'), soundGap:$('soundGap'), questionGap:$('questionGap'), speech:$('speech'), speechModes:$('speechModes'), speed:$('speed'), speedValue:$('speedValue'),
   genre:$('genre'), progressionSettings:$('progressionSettings'), progressionKeyMode:$('progressionKeyMode'), progressionKeyWrap:$('progressionKeyWrap'), progressionKey:$('progressionKey'),
   answer:$('answer'), instrumentLabel:$('instrumentLabel'), status:$('status'), remaining:$('remaining'), soundStatus:$('soundStatus'), loadBar:$('loadBar'), loadPercent:$('loadPercent'), start:$('start'), stop:$('stop')
@@ -17,6 +17,7 @@ const instrumentById = new Map(INSTRUMENTS.map(x=>[x.id,x]));
 let audioContext=null, synth=null, soundLoaded=false, loadingPromise=null;
 let runToken=0, playing=false, endAt=0, durationSec=1, soundGapSec=0.5, questionGapSec=1;
 let activeTimers=new Set(), activeNotes=[], previousNote=-1, timerTicker=null, wakeLock=null, speechPrimePromise=Promise.resolve();
+let previousMelodyEnding=null;
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const sleep=ms=>new Promise(resolve=>{const id=setTimeout(()=>{activeTimers.delete(id);resolve();},Math.max(0,ms));activeTimers.add(id);});
 function clearTimers(){for(const id of activeTimers)clearTimeout(id);activeTimers.clear();}
@@ -83,49 +84,7 @@ async function fetchWithProgress(url){
   }
   const out=new Uint8Array(loaded);let offset=0;for(const c of chunks){out.set(c,offset);offset+=c.length;}return out.buffer;
 }
-async function loadSoundBank(){if(loadingPromise)return loadingPromise;loadingPromise=(async()=>{setLoadProgress(1,'音源の読み込みを準備中…');const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)throw new Error('このブラウザはWeb Audio APIに対応していません');audioContext=new Ctx({latencyHint:'interactive'});const workletURL='https://cdn.jsdelivr.net/npm/spessasynth_lib@4.4.0/dist/spessasynth_processor.min.js';setLoadProgress(3,'音源エンジンを準備中…');await audioContext.audioWorklet.addModule(workletURL);synth=new WorkletSynthesizer(audioContext);synth.connect(audioContext.destination);
-try{
-  diagnosticAnalyser=audioContext.createAnalyser();
-  diagnosticAnalyser.fftSize=2048;
-  synth.connect(diagnosticAnalyser);
-}catch(e){console.warn('診断アナライザー接続不可',e);}
-await synth.isReady;const compressed=await fetchWithProgress('./assets/GeneralUser-GS.sf2.gz');setLoadProgress(78,'SoundFontを展開中…');if(!('DecompressionStream'in window))throw new Error('このブラウザはgzip展開に対応していません');const stream=new Blob([compressed]).stream().pipeThrough(new DecompressionStream('gzip'));const bank=await new Response(stream).arrayBuffer();setLoadProgress(86,'261プリセットを含むSoundFontを登録中…');await synth.soundBankManager.addSoundBank(bank,'GeneralUser-GS');try{synth.controllerChange(0,0,0);synth.controllerChange(0,32,0);synth.programChange(0,0);}catch(_){}setLoadProgress(100,'音源：GeneralUser GS 読み込み完了');soundLoaded=true;el.start.disabled=false;setTimeout(()=>document.querySelector('.loading-area')?.classList.add('hidden'),1200);return true;})();return loadingPromise;}
-// v10: record audio commands and audio context transitions.
-let diagnosticAnalyser=null;
-function measureSynthSignal(){
-  if(!diagnosticAnalyser)return '計測不可';
-  const samples=new Float32Array(diagnosticAnalyser.fftSize);
-  diagnosticAnalyser.getFloatTimeDomainData(samples);
-  let sum=0;
-  for(const x of samples)sum+=x*x;
-  const rms=Math.sqrt(sum/samples.length);
-  return (20*Math.log10(Math.max(rms,0.000001))).toFixed(1)+' dBFS';
-}
-let audioQuestionNumber=0;
-const audioEvents=[];
-function audioDiagnostic(message){
-  const stamp=(performance.now()/1000).toFixed(2);
-  audioEvents.push(`${stamp}s ${message}`);
-  if(audioEvents.length>12)audioEvents.shift();
-  const node=document.getElementById('audioDiagnostic');
-  if(node)node.textContent='再生診断：'+audioEvents.slice(-5).join(' | ');
-  console.info('[v11 audio]',message);
-}
-async function ensureAudioRunning(token){
-  if(token!==runToken)return false;
-  if(audioContext.state!=='running'){
-    audioDiagnostic('AudioContext '+audioContext.state+' → resume');
-    await audioContext.resume();
-  }
-  if(token!==runToken)return false;
-  if(audioContext.state!=='running'){
-    audioDiagnostic('再開後も '+audioContext.state);
-    return false;
-  }
-  return true;
-}
-// v11: only release notes started by this app. Never send global MIDI CC120/CC123.
-// Those commands may suppress later noteOn messages in the AudioWorklet engine.
+async function loadSoundBank(){if(loadingPromise)return loadingPromise;loadingPromise=(async()=>{setLoadProgress(1,'音源の読み込みを準備中…');const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)throw new Error('このブラウザはWeb Audio APIに対応していません');audioContext=new Ctx({latencyHint:'interactive'});const workletURL='https://cdn.jsdelivr.net/npm/spessasynth_lib@4.4.0/dist/spessasynth_processor.min.js';setLoadProgress(3,'音源エンジンを準備中…');await audioContext.audioWorklet.addModule(workletURL);synth=new WorkletSynthesizer(audioContext);synth.connect(audioContext.destination);await synth.isReady;const compressed=await fetchWithProgress('./assets/GeneralUser-GS.sf2.gz');setLoadProgress(78,'SoundFontを展開中…');if(!('DecompressionStream'in window))throw new Error('このブラウザはgzip展開に対応していません');const stream=new Blob([compressed]).stream().pipeThrough(new DecompressionStream('gzip'));const bank=await new Response(stream).arrayBuffer();setLoadProgress(86,'261プリセットを含むSoundFontを登録中…');await synth.soundBankManager.addSoundBank(bank,'GeneralUser-GS');try{synth.controllerChange(0,0,0);synth.controllerChange(0,32,0);synth.programChange(0,0);}catch(_){}setLoadProgress(100,'音源：GeneralUser GS 読み込み完了');soundLoaded=true;el.start.disabled=false;setTimeout(()=>document.querySelector('.loading-area')?.classList.add('hidden'),1200);return true;})();return loadingPromise;}
 function selectPreset(inst){if(!synth)throw new Error('音源エンジンが準備できていません');synth.controllerChange(0,0,inst.bank);synth.controllerChange(0,32,0);synth.programChange(0,inst.program);synth.controllerChange(0,7,Math.round(Number(el.instrumentVolume.value)*1.27));}
 function noteOn(note){synth.noteOn(0,note,100);activeNotes.push(note);}
 function noteOff(note){try{synth.noteOff(0,note);}catch(_){}activeNotes=activeNotes.filter(x=>x!==note);}
@@ -145,83 +104,7 @@ function speechLang(mode,part){return $(`speech-lang-${mode}-${part}`)?.value===
 function pitchText(pitch,lang){if(lang==='en-US')return D.ENGLISH_SPEECH_NAMES[pitch];return D.JAPANESE_SPEECH_NAMES[pitch];}
 async function speakPitch(pitch,lang){if(lang==='en-US'&&[4,5,9].includes(pitch)){await speak(({4:'イー',5:'エフ',9:'エー'})[pitch],'ja-JP');}else await speak(pitchText(pitch,lang),lang);}
 function noteSpeech(note,mode){const lang=speechLang(mode,'notes'),pitch=note%12,oct=Math.floor(note/12)-1;return {text:pitchText(pitch,lang),lang,octave:$(`speech-octave-${mode}`)?.checked?String(oct):null};}
-// v9: one utterance at a time; never let a stalled iOS speech event block the next question.
-let activeSpeech=null;
-let speechFailures=0;
-let speechRequestNumber=0;
-function recoverAfterSpeech(){
-  if(!playing||!audioContext)return;
-  const state=audioContext.state;
-  audioDiagnostic('読み上げ後 AudioContext='+state);
-  if(state!=='running')audioContext.resume().then(()=>audioDiagnostic('再開結果 '+audioContext.state)).catch(e=>audioDiagnostic('再開失敗 '+e.message));
-}
-function speechDiagnostic(message){
-  console.info('[v9 speech]',message);
-  const target=document.getElementById('speechDiagnostic');
-  if(target)target.textContent='読み上げ診断：'+message;
-}
-function cancelActiveSpeech(){
-  const current=activeSpeech;
-  if(current)current.finish('停止によりキャンセル');
-  try{window.speechSynthesis?.cancel();}catch(_){}
-}
-function speak(text,lang='ja-JP'){
-  if(el.speech.value!=='on'||!text)return Promise.resolve();
-  if(!('speechSynthesis'in window)||!('SpeechSynthesisUtterance'in window)){
-    speechDiagnostic('このブラウザでは読み上げを利用できません');
-    return Promise.resolve();
-  }
-  return new Promise(resolve=>{
-    // A previous utterance that failed to finish must not overlap the next one.
-    if(activeSpeech)cancelActiveSpeech();
-    const synth=window.speechSynthesis;
-    const request=++speechRequestNumber;
-    const requestedAt=performance.now();
-    speechDiagnostic(`音声${request} 発行 / AudioContext=${audioContext?.state}`);
-    const u=new SpeechSynthesisUtterance(String(text));
-    u.lang=lang;u.rate=Number(el.speed.value);u.volume=Number(el.speechVolume.value)/100;
-    let finished=false,started=false,startTimer=null,endTimer=null;
-    const state={finish:(reason)=>{
-      if(finished)return;
-      finished=true;
-      clearTimeout(startTimer);clearTimeout(endTimer);
-      u.onstart=u.onend=u.onerror=null;
-      if(activeSpeech===state)activeSpeech=null;
-      const elapsed=((performance.now()-requestedAt)/1000).toFixed(2);
-      audioDiagnostic(`音声${request} ${reason} ${elapsed}秒 / AudioContext=${audioContext?.state}`);
-      recoverAfterSpeech();
-      if(reason!=='完了'&&reason!=='停止によりキャンセル'){
-        speechFailures++;speechDiagnostic(`${reason}（累計${speechFailures}回）`);
-      }else if(reason==='完了')speechDiagnostic(`音声${request} 正常終了（合計${elapsed}秒）`);
-      resolve();
-    }};
-    activeSpeech=state;
-    u.onstart=()=>{
-      if(finished)return;
-      started=true;clearTimeout(startTimer);
-      speechDiagnostic(`音声${request} 開始待ち${((performance.now()-requestedAt)/1000).toFixed(2)}秒 / AudioContext=${audioContext?.state}`);
-      // Fail safe only: actual completion is governed by onend.
-      const limit=Math.min(12000,Math.max(4000,1800+String(text).length*250/Math.max(.4,u.rate)));
-      endTimer=setTimeout(()=>{
-        if(finished)return;
-        try{synth.cancel();}catch(_){}
-        state.finish('終了通知が届かずタイムアウト');
-      },limit);
-    };
-    u.onend=()=>state.finish('完了');
-    u.onerror=e=>state.finish('読み上げエラー：'+(e.error||'不明'));
-    startTimer=setTimeout(()=>{
-      if(finished||started)return;
-      try{synth.cancel();}catch(_){}
-      state.finish('開始通知が届かずタイムアウト');
-    },3000);
-    try{
-      if(synth.paused)synth.resume();
-      synth.speak(u);
-      if(synth.paused)synth.resume();
-    }catch(e){state.finish('開始例外：'+e.message);}
-  });
-}
+function speak(text,lang='ja-JP'){if(el.speech.value!=='on'||!text)return Promise.resolve();if(!('speechSynthesis'in window)||!('SpeechSynthesisUtterance'in window))return Promise.resolve();return new Promise(resolve=>{const u=new SpeechSynthesisUtterance(text);u.lang=lang;u.rate=Number(el.speed.value);u.volume=Number(el.speechVolume.value)/100;let done=false;let watchdog;const finish=()=>{if(done)return;done=true;clearTimeout(watchdog);resolve();};u.onend=finish;u.onerror=finish;watchdog=setTimeout(()=>{try{speechSynthesis.cancel();}catch(_){}finish();},20000);try{speechSynthesis.resume();speechSynthesis.speak(u);}catch(_){finish();}});}
 async function speakPart(mode,part,text){if(speechEnabled(mode,part))await speak(text,speechLang(mode,part));}
 async function speakInstrument(inst,mode){const ja=inst.nameJa||inst.name;const isJapanese=/[ぁ-んァ-ヶ一-龠]/.test(ja||'');const name=isJapanese?ja:(inst.presetName||inst.name||ja);await speakPart(mode,'instrument',name);}
 async function speakNotes(notes,mode){if(!speechEnabled(mode,'notes'))return;for(const n of notes){const spec=noteSpeech(n,mode);const gap=Number(el.octaveGap.value);if(spec.octave!==null&&gap===0){ // One utterance avoids an artificial pause between pitch and octave.
@@ -255,81 +138,143 @@ function generateGuitarChord(inst){for(let i=0;i<100;i++){const name=pick(Object
 function generateChord(inst){if(inst.guitarVoicing)return generateGuitarChord(inst);for(let i=0;i<80;i++){const name=pick(Object.keys(D.CHORD_TYPES)),intervals=D.CHORD_TYPES[name],inversion=Math.floor(Math.random()*intervals.length),root=Math.floor(Math.random()*12);try{return {name,root,inversion,notes:genericChordNotes(root,intervals,inst,inversion),frets:null};}catch(_){}}const name='Major',root=Math.floor(Math.random()*12);return {name,root,inversion:0,notes:genericChordNotes(root,D.CHORD_TYPES[name],inst,0),frets:null};}
 function generateSingle(){const inst=chooseInstrument(),[low,high]=getSelectedRange(inst);let list=Array.from({length:high-low+1},(_,i)=>low+i);if(list.length>1&&list.includes(previousNote))list=list.filter(x=>x!==previousNote);const note=pick(list);previousNote=note;return {inst,note};}
 function generateInterval(){const inst=chooseInstrument(),[low,high]=getSelectedRange(inst),semitones=Object.keys(D.INTERVALS).map(Number).filter(n=>high-low>=n);if(!semitones.length)throw new Error('選択した音域が狭すぎて音程を生成できません');const gap=pick(semitones),direction=pick(['上昇','下降']);const first=direction==='上昇'?Math.floor(Math.random()*(high-gap-low+1))+low:Math.floor(Math.random()*(high-(low+gap)+1))+low+gap;return {inst,first,second:direction==='上昇'?first+gap:first-gap,gap,direction};}
-function generateMelody(){
-  const inst=chooseInstrument(),[low,high]=getRangeForMelody(inst),count=Number(el.melodyCount.value)===0?3+Math.floor(Math.random()*6):Number(el.melodyCount.value);
-  const key=el.melodyKeyMode.value==='1'?Math.floor(Math.random()*12):Number(el.melodyKey.value);
-  const all=Object.values(D.SCALE_CATEGORIES).flat(),categoryScales=D.SCALE_CATEGORIES[Object.keys(D.SCALE_CATEGORIES)[Number(el.melodyCategory.value)]],scaleName=el.melodyScaleMode.value==='1'?pick(all):el.melodyScaleMode.value==='2'?pick(categoryScales):categoryScales[Number(el.melodyScale.value)];
-  let candidates=Array.from({length:high-low+1},(_,i)=>low+i);
-  const scaleSet=new Set(D.SCALES[scaleName].map(x=>(key+x)%12));
-  if(el.melodySelection.value==='1'||el.melodyStyle?.value==='natural')candidates=candidates.filter(n=>scaleSet.has(n%12));
-  if(!candidates.length)throw new Error('選択した条件では音を生成できません');
-  let notes=[];
-  if(el.melodyStyle?.value==='natural'){
-    const center=(low+high)/2;
-    let previous=candidates.reduce((a,b)=>Math.abs(b-center)<Math.abs(a-center)?b:a,candidates[0]);
-    for(let i=0;i<count;i++){
-      let choices=candidates.filter(n=>Math.abs(n-previous)<=4&&n!==previous);
-      if(i===0)choices=candidates.filter(n=>Math.abs(n-previous)<=7);
-      if(i===count-1){const resolved=candidates.filter(n=>[0,7].includes((n-key+120)%12));if(resolved.length)choices=resolved;}
-      if(!choices.length)choices=candidates;
-      const weights=choices.map(n=>1/(1+Math.abs(n-previous))*(i===count-1&&((n-key+120)%12===0)?2.5:1));
-      let r=Math.random()*weights.reduce((a,b)=>a+b,0),chosen=choices[0];
-      for(let j=0;j<choices.length;j++){r-=weights[j];if(r<=0){chosen=choices[j];break;}}
-      notes.push(chosen);previous=chosen;
+// A phrase-aware, range-limited melody generator. Other modes are untouched.
+function weightedChoice(items, weight){
+  let total=0;const weights=items.map(x=>{const w=Math.max(0.0001,weight(x));total+=w;return w;});
+  let r=Math.random()*total;
+  for(let i=0;i<items.length;i++){r-=weights[i];if(r<=0)return items[i];}
+  return items[items.length-1];
+}
+function melodicRhythm(count){
+  // Durations and rests share a four-beat grid. Tuplets are grouped in threes.
+  const opts={legato:!!el.melodyLegato?.checked,staccato:!!el.melodyStaccato?.checked,
+    phrase:!!el.melodyPhrase?.checked,rests:!!el.melodyRests?.checked,
+    };
+  const result=[];let position=0,tripletRemaining=0;
+  for(let i=0;i<count;i++){
+    const remaining=4-position;
+    let beats;
+    if(tripletRemaining>0){beats=1/3;tripletRemaining--;}
+    else{
+      const durations=[{v:0.5,w:3},{v:1,w:6},{v:1.5,w:2},{v:2,w:2}];
+      durations.push({v:4,w:0.7});
+      durations.push({v:0.25,w:2});
+      // A triplet group occupies one beat, with three equal onsets.
+      if(remaining>=1-1e-6&&count-i>=3)durations.push({v:1/3,w:2,triplet:true});
+      let possible=durations.filter(d=>d.v<=remaining+1e-6);
+      if(!possible.length)possible=[{v:remaining,w:1}];
+      const selected=weightedChoice(possible,d=>d.w);
+      beats=selected.v;
+      if(selected.triplet)tripletRemaining=2;
     }
-  }else notes=Array.from({length:count},()=>pick(candidates));
-  return {inst,notes,key,scaleName};
-}
-function generateProgressionChord(data,inst,key){const [offset,type,degree,spoken]=data,root=(key+offset)%12,intervals=D.CHORD_TYPES[type];if(inst.guitarVoicing){const list=guitarVoicings(root,intervals,0,inst,12);if(list.length){const v=pick(list);return {name:type,root,inversion:0,notes:v.notes,frets:v.frets,degree,spoken};}}return {name:type,root,inversion:0,notes:genericChordNotes(root,intervals,inst,0),frets:null,degree,spoken};}
-async function playSingleFor(inst,note,ms,token){
-  if(token!==runToken)return;
-  const question=++audioQuestionNumber;
-  audioDiagnostic(`問${question} 準備 ${noteName(note)} (${audioContext.state})`);
-  if(!await ensureAudioRunning(token))return;
-  stopAllNotes();
-  selectPreset(inst);
-  if(token!==runToken)return;
-  audioDiagnostic(`問${question} noteOn ${noteName(note)} (${audioContext.state}) / 発音管理=${activeNotes.length}`);
-  noteOn(note);
-  const sampleTimer=setTimeout(()=>{
-    if(token===runToken)audioDiagnostic(`問${question} 音源信号=${measureSynthSignal()} / Context=${audioContext.state}`);
-  },Math.min(220,Math.max(50,ms/3)));
-  try{await sleep(ms);}
-  finally{
-    clearTimeout(sampleTimer);
-    noteOff(note);
-    audioDiagnostic(`問${question} noteOff (${audioContext.state}) / 発音管理=${activeNotes.length}`);
+    const phraseEnd=opts.phrase&&(i===count-1||(i+1)%8===0);
+    // Rest after the note (not after the final note). Avoid disturbing triplet groups.
+    const after=4-(position+beats);
+    let rest=0;
+    if(opts.rests&&i<count-1&&tripletRemaining===0&&Math.random()<0.18){
+      const choices=[0.5,1].filter(v=>v<=after+1e-6);
+      if(choices.length)rest=pick(choices);
+    }
+    let articulation=0.86;
+    if(opts.legato&&opts.staccato)articulation=Math.random()<0.55?0.98:0.48;
+    else if(opts.legato)articulation=0.98;
+    else if(opts.staccato)articulation=0.48;
+    if(phraseEnd)articulation=Math.max(articulation,0.96);
+    result.push({beats,rest,articulation,phraseEnd});
+    position+=beats+rest;
+    if(position>=4-1e-6)position=0;
   }
+  return result;
 }
-async function playChordFor(inst,chord,ms,token,mode,displayTitle){if(token!==runToken)return;if(!await ensureAudioRunning(token))return;stopAllNotes();selectPreset(inst);const notes=chord.notes;if((inst.family==='mono'||inst.guitarVoicing)&&!chord.frets){const each=Math.max(140,Math.min(320,ms/Math.max(1,notes.length)));for(let i=0;i<notes.length;i++){if(token!==runToken)return;if(mode!=='3')setChordDisplay(chord,inst,i,displayTitle||'アルペジオ再生中');noteOn(notes[i]);await sleep(each);noteOff(notes[i]);if(i<notes.length-1)await sleep(45);}return;}if(chord.frets){for(let i=0;i<notes.length;i++){if(token!==runToken)return;if(mode!=='3')setChordDisplay(chord,inst,i,'コードをストローク中');noteOn(notes[i]);await sleep(28);}await sleep(ms);if(token===runToken)stopAllNotes();return;}for(const n of notes)noteOn(n);await sleep(ms);if(token===runToken)stopAllNotes();}
+function generateMelody(){
+  const inst=chooseInstrument(),[fullLow,fullHigh]=getRangeForMelody(inst);
+  const setting=Number(el.melodyCount.value);
+  const count=setting===-1?3+Math.floor(Math.random()*30):setting===0?3+Math.floor(Math.random()*6):setting;
+  const continuity=el.melodyContinuity?.value==='on'&&previousMelodyEnding!==null;
+  const center=(fullLow+fullHigh)/2;
+  // Keep the working register near the previous ending, even if the selected instrument changes.
+  const anchor=continuity?Math.max(fullLow,Math.min(fullHigh,previousMelodyEnding)):center;
+  let low=fullLow,high=fullHigh;
+  if(continuity&&fullHigh-fullLow>18){
+    low=Math.max(fullLow,Math.round(anchor)-9);
+    high=Math.min(fullHigh,Math.round(anchor)+9);
+    if(high-low<8){low=Math.max(fullLow,Math.min(low,fullHigh-12));high=Math.min(fullHigh,low+12);}
+  }
+  const all=Object.values(D.SCALE_CATEGORIES).flat(),categoryScales=D.SCALE_CATEGORIES[Object.keys(D.SCALE_CATEGORIES)[Number(el.melodyCategory.value)]];
+  const scaleName=el.melodyScaleMode.value==='1'?pick(all):el.melodyScaleMode.value==='2'?pick(categoryScales):categoryScales[Number(el.melodyScale.value)];
+  const allowedKeys=el.melodyKeyMode.value==='1'?Array.from({length:12},(_,i)=>i):[Number(el.melodyKey.value)];
+  const key=continuity&&allowedKeys.length>1?weightedChoice(allowedKeys,k=>{
+    const scale=D.SCALES[scaleName].map(x=>(k+x)%12);
+    const distance=Math.min(...scale.map(pc=>Math.min((pc-previousMelodyEnding%12+12)%12,(previousMelodyEnding%12-pc+12)%12)));
+    return distance===0?6:distance===1?2:0.3;
+  }):pick(allowedKeys);
+  const scaleSet=new Set(D.SCALES[scaleName].map(x=>(key+x)%12));
+  const natural=el.melodyStyle?.value==='natural';
+  const scaleOnly=el.melodySelection.value==='1'||natural;
+  let candidates=Array.from({length:high-low+1},(_,i)=>low+i).filter(n=>!scaleOnly||scaleSet.has(n%12));
+  if(!candidates.length){candidates=Array.from({length:fullHigh-fullLow+1},(_,i)=>fullLow+i).filter(n=>!scaleOnly||scaleSet.has(n%12));}
+  if(!candidates.length)throw new Error('選択した条件では音を生成できません');
+  const notes=[];
+  let previous=continuity?previousMelodyEnding:anchor;
+  for(let i=0;i<count;i++){
+    let choices=candidates;
+    if(natural||continuity){
+      const maxLeap=i===0&&continuity?7:i===0?7:5;
+      const near=candidates.filter(n=>Math.abs(n-previous)<=maxLeap);
+      if(near.length)choices=near;
+    }
+    // End a phrase on stable degrees when available, but do not force large jumps.
+    const isEnd=i===count-1||((i+1)%8===0);
+    const chosen=(natural||continuity)?weightedChoice(choices,n=>{
+      const delta=Math.abs(n-previous);
+      const stable=[0,4,7].includes((n-key+120)%12);
+      const step=delta<=2?3:delta<=4?1.8:0.65;
+      const close=1/(1+delta*0.45);
+      const repeat=n===previous?0.3:1;
+      return step*close*repeat*(isEnd&&stable?2.6:1);
+    }):pick(choices);
+    notes.push(chosen);previous=chosen;
+  }
+  const rhythm=el.melodyRhythm?.value==='musical'?melodicRhythm(count):null;
+  return {inst,notes,key,scaleName,rhythm};
+}
+
+function generateProgressionChord(data,inst,key){const [offset,type,degree,spoken]=data,root=(key+offset)%12,intervals=D.CHORD_TYPES[type];if(inst.guitarVoicing){const list=guitarVoicings(root,intervals,0,inst,12);if(list.length){const v=pick(list);return {name:type,root,inversion:0,notes:v.notes,frets:v.frets,degree,spoken};}}return {name:type,root,inversion:0,notes:genericChordNotes(root,intervals,inst,0),frets:null,degree,spoken};}
+async function playSingleFor(inst,note,ms,token){if(token!==runToken)return;selectPreset(inst);await audioContext.resume();noteOn(note);await sleep(ms);if(token===runToken)noteOff(note);}
+async function playChordFor(inst,chord,ms,token,mode,displayTitle){if(token!==runToken)return;selectPreset(inst);await audioContext.resume();const notes=chord.notes;if((inst.family==='mono'||inst.guitarVoicing)&&!chord.frets){const each=Math.max(140,Math.min(320,ms/Math.max(1,notes.length)));for(let i=0;i<notes.length;i++){if(token!==runToken)return;if(mode!=='3')setChordDisplay(chord,inst,i,displayTitle||'アルペジオ再生中');noteOn(notes[i]);await sleep(each);noteOff(notes[i]);if(i<notes.length-1)await sleep(45);}return;}if(chord.frets){for(let i=0;i<notes.length;i++){if(token!==runToken)return;if(mode!=='3')setChordDisplay(chord,inst,i,'コードをストローク中');noteOn(notes[i]);await sleep(28);}await sleep(ms);if(token===runToken)stopAllNotes();return;}for(const n of notes)noteOn(n);await sleep(ms);if(token===runToken)stopAllNotes();}
 function requestWakeLock(){if(!('wakeLock'in navigator))return;navigator.wakeLock.request('screen').then(x=>{wakeLock=x;x.addEventListener('release',()=>wakeLock=null);}).catch(()=>{});}
 async function releaseWakeLock(){if(wakeLock){try{await wakeLock.release();}catch(_){}wakeLock=null;}}
 function configureIOSAudio(){try{if(navigator.audioSession)navigator.audioSession.type='playback';}catch(_){}}
-// v7 experimental background-audio controls. iOS may still suspend JS timers or speech synthesis.
-function updateMediaSession(active){
-  if(!('mediaSession' in navigator))return;
-  try{
-    navigator.mediaSession.metadata=new MediaMetadata({title:'音感トレーニング',artist:'Random Piano & Guitar',album:'バックグラウンド再生 実験版 v11'});
-    navigator.mediaSession.playbackState=active?'playing':'paused';
-    navigator.mediaSession.setActionHandler('play',()=>{if(!playing)startSession();else audioContext?.resume().catch(()=>{});});
-    navigator.mediaSession.setActionHandler('pause',()=>{console.info('[v8] Media Session pause event (no automatic session stop)');});
-    navigator.mediaSession.setActionHandler('stop',()=>{console.info('[v8] Media Session stop event (no automatic session stop)');});
-  }catch(e){console.warn('Media Session unavailable',e);}
-}
-function restoreAudioIfNeeded(){
-  if(!playing)return;
-  configureIOSAudio();
-  if(audioContext?.state==='suspended')audioContext.resume().catch(()=>{});
-  updateMediaSession(true);
-}
-
-function primeSpeech(){speechDiagnostic('初期化開始 / AudioContext='+audioContext?.state);if(!('speechSynthesis'in window))return;try{const s=window.speechSynthesis,u=new SpeechSynthesisUtterance('あ');u.lang='ja-JP';u.volume=0.01;s.cancel();s.speak(u);speechPrimePromise=new Promise(resolve=>{let done=false;const finish=()=>{if(done)return;done=true;clearTimeout(t);resolve();};u.onend=finish;u.onerror=finish;const t=setTimeout(finish,1800);});}catch(_){speechPrimePromise=Promise.resolve();}}
+function primeSpeech(){if(!('speechSynthesis'in window))return;try{const s=window.speechSynthesis,u=new SpeechSynthesisUtterance('あ');u.lang='ja-JP';u.volume=0.01;s.cancel();s.speak(u);speechPrimePromise=new Promise(resolve=>{let done=false;const finish=()=>{if(done)return;done=true;clearTimeout(t);resolve();};u.onend=finish;u.onerror=finish;const t=setTimeout(finish,1500);});}catch(_){speechPrimePromise=Promise.resolve();}}
 function formatRemaining(ms){const s=Math.max(0,Math.ceil(ms/1000));return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;}
 function updateTimer(){const left=endAt-Date.now();el.remaining.textContent='残り時間：'+formatRemaining(left);if(left<=0&&playing)stopSession('時間終了');}
 async function runSingle(token){const q=generateSingle();setDisplayLines([noteName(q.note)],q.inst,'単音を再生中');await playSingleFor(q.inst,q.note,durationSec*1000,token);if(token!==runToken)return;await speakNotes([q.note],'0');await speakInstrument(q.inst,'0');if(token===runToken)await sleep(questionGapSec*1000);}
 async function runChord(token){let inst=null,chord=null;for(const candidate of selectedInstrumentPool().filter(x=>{try{const [a,b]=getSelectedRange(x);return chordEligible(x)&&b-a>=12;}catch(_){return false;}}).sort(()=>Math.random()-0.5)){try{chord=generateChord(candidate);inst=candidate;break;}catch(_){}}if(!inst)throw new Error('コードを生成できる楽器がありません');setChordDisplay(chord,inst,-1,'コード再生中');await playChordFor(inst,chord,durationSec*1000,token,'1');if(token!==runToken)return;const info=speechLang('1','info')==='en-US'?chordEnglish(chord):chordJapanese(chord);await speakPart('1','info',info);if(chord.inversion>0&&speechEnabled('1','inversion'))await speak(inversionSpeech(chord.inversion,'1'),speechLang('1','inversion'));await speakNotes(chord.notes,'1');await speakInstrument(inst,'1');if(token===runToken)await sleep(questionGapSec*1000);}
 async function runInterval(token){const q=generateInterval(),notes=[q.first,q.second],lang=speechLang('2','info');for(let i=0;i<2;i++){setSequenceDisplay('音程',notes,i,q.inst,`音程再生中（${i+1}音目）`);await playSingleFor(q.inst,notes[i],durationSec*1000,token);if(token!==runToken)return;if(i===0)await sleep(soundGapSec*1000);}if(token!==runToken)return;const intervalJa=D.INTERVALS[String(q.gap)]||`${q.gap}半音`;const intervalEn=intervalName(q.gap,'en-US');setSequenceDisplay(`${intervalJa}（${q.direction}）`,notes,1,q.inst,'音程の問題が終了');const info=intervalName(q.gap,lang)+(lang==='en-US'?(q.direction==='上昇'?' ascending':' descending'):(q.direction==='上昇'?'上昇':'下降'));await speakPart('2','info',info);await speakNotes(notes,'2');await speakInstrument(q.inst,'2');if(token===runToken)await sleep(questionGapSec*1000);}
-async function runMelody(token){const m=generateMelody();for(let i=0;i<m.notes.length;i++){setSequenceDisplay(`${D.NAMES[m.key]} / ${m.scaleName}`,m.notes,i,m.inst,`メロディ再生中 ${i+1}/${m.notes.length}`);await playSingleFor(m.inst,m.notes[i],durationSec*1000,token);if(token!==runToken)return;if(i<m.notes.length-1)await sleep(soundGapSec*1000);}if(token!==runToken)return;const keyLang=speechLang('4','key'),keyText=pitchText(m.key,keyLang),scale=(keyLang==='en-US'?D.SCALE_ENGLISH_NAMES:D.SCALE_JAPANESE_NAMES)[m.scaleName]||m.scaleName;await speakPart('4','key',keyText+' '+scale);await speakNotes(m.notes,'4');await speakInstrument(m.inst,'4');if(token===runToken)await sleep(questionGapSec*1000);}
+async function runMelody(token){
+  const m=generateMelody();
+  const tempo=Math.max(40,Math.min(240,Number(el.melodyTempo?.value)||100));
+  const beatMs=60000/tempo;
+  for(let i=0;i<m.notes.length;i++){
+    const rhythm=m.rhythm?.[i];
+    const label=rhythm?` / ${Number(rhythm.beats.toFixed(3))}拍${rhythm.rest?' ＋休符'+rhythm.rest+'拍':''}`:'';
+    setSequenceDisplay(`${D.NAMES[m.key]} / ${m.scaleName}`,m.notes,i,m.inst,`メロディ再生中 ${i+1}/${m.notes.length}${label}`);
+    const slotMs=rhythm?rhythm.beats*beatMs:null;
+    const soundMs=slotMs?Math.max(35,slotMs*rhythm.articulation):durationSec*1000;
+    await playSingleFor(m.inst,m.notes[i],soundMs,token);
+    if(token!==runToken)return;
+    if(i<m.notes.length-1){
+      const gap=rhythm?Math.max(0,slotMs-soundMs)+(rhythm.rest*beatMs)+(rhythm.phraseEnd?beatMs*0.5:0):soundGapSec*1000;
+      await sleep(gap);
+    }
+  }
+  if(token!==runToken)return;
+  previousMelodyEnding=m.notes[m.notes.length-1];
+  const keyLang=speechLang('4','key'),keyText=pitchText(m.key,keyLang),scale=(keyLang==='en-US'?D.SCALE_ENGLISH_NAMES:D.SCALE_JAPANESE_NAMES)[m.scaleName]||m.scaleName;
+  await speakPart('4','key',keyText+' '+scale);
+  await speakNotes(m.notes,'4');await speakInstrument(m.inst,'4');
+  if(token===runToken)await sleep(questionGapSec*1000);
+}
 async function runProgression(token){
   const genre=el.genre.value,choices=D.PROGRESSIONS.filter(p=>genre==='すべて'||p.genre===genre);
   if(!choices.length)throw new Error('選択されたジャンルに進行がありません');
@@ -363,15 +308,11 @@ async function runProgression(token){
   if(token===runToken)await sleep(questionGapSec*1000);
 }
 async function sessionLoop(token){while(playing&&token===runToken&&Date.now()<endAt){switch(el.mode.value){case'0':await runSingle(token);break;case'1':await runChord(token);break;case'2':await runInterval(token);break;case'3':await runProgression(token);break;case'4':await runMelody(token);break;}}if(token===runToken&&playing)stopSession('時間終了');}
-function validateSettings(){const minutes=Number(el.minutes.value),duration=Number(el.duration.value),soundGap=Number(el.soundGap.value),questionGap=Number(el.questionGap.value);if(!Number.isFinite(minutes)||minutes<0.1||minutes>600)throw new Error('再生時間は0.1〜600分で指定してください');if(!Number.isFinite(duration)||duration<=0)throw new Error('音の長さは0秒より大きくしてください');if(!Number.isFinite(Number(el.octaveGap.value))||Number(el.octaveGap.value)<0)throw new Error('音名とオクターブ番号の間隔は0秒以上にしてください');if(!Number.isFinite(soundGap)||soundGap<0||!Number.isFinite(questionGap)||questionGap<0)throw new Error('間隔は0秒以上で指定してください');if(!selectedInstrumentPool().some(x=>{try{getSelectedRange(x);return true;}catch(_){return false;}}))throw new Error('選択した音域に対応する楽器がありません');if(['1','3'].includes(el.mode.value)&&!selectedInstrumentPool().some(x=>{try{const [a,b]=getSelectedRange(x);return chordEligible(x)&&b-a>=12;}catch(_){return false;}}))throw new Error('コード演奏に対応した楽器を選択してください');if(el.mode.value==='4'&&!selectedInstrumentPool().some(x=>{try{getRangeForMelody(x);return true;}catch(_){return false;}}))throw new Error('選択した楽器とメロディ音域が一致しません');if(el.mode.value==='3'&&el.progressionKeyMode.value==='1')parseKeyText(el.progressionKey.value);durationSec=duration;soundGapSec=soundGap;questionGapSec=questionGap;return minutes;}
-async function startSession(){if(playing||!soundLoaded)return;configureIOSAudio();if(el.speech.value==='on')primeSpeech();let minutes;try{minutes=validateSettings();}catch(e){el.status.textContent=e.message;return;}requestWakeLock();el.start.disabled=true;el.stop.disabled=true;try{await audioContext.resume();if(el.speech.value==='on')await speechPrimePromise;playing=true;audioQuestionNumber=0;audioEvents.length=0;updateMediaSession(true);runToken++;const token=runToken;endAt=Date.now()+minutes*60000;previousNote=-1;el.stop.disabled=false;el.status.textContent='トレーニング中';timerTicker=setInterval(updateTimer,250);updateTimer();sessionLoop(token).catch(e=>{if(token===runToken)stopSession('再生エラー：'+e.message);});}catch(e){el.status.textContent='再生準備エラー：'+e.message;el.start.disabled=false;el.stop.disabled=true;releaseWakeLock();}}
-function stopSession(reason='停止しました'){if(!playing&&el.start.disabled===false)return;playing=false;updateMediaSession(false);runToken++;clearTimers();releaseWakeLock();if(timerTicker){clearInterval(timerTicker);timerTicker=null;}stopAllNotes();cancelActiveSpeech();try{audioContext?.suspend();}catch(_){}el.start.disabled=!soundLoaded;el.stop.disabled=true;el.status.textContent=reason;el.remaining.textContent='残り時間：00:00';if(reason==='時間終了')el.answer.textContent='終了';}
+function validateSettings(){const minutes=Number(el.minutes.value),duration=Number(el.duration.value),soundGap=Number(el.soundGap.value),questionGap=Number(el.questionGap.value);if(!Number.isFinite(minutes)||minutes<0.1||minutes>600)throw new Error('再生時間は0.1〜600分で指定してください');if(!Number.isFinite(duration)||duration<=0)throw new Error('音の長さは0秒より大きくしてください');if(!Number.isFinite(Number(el.octaveGap.value))||Number(el.octaveGap.value)<0)throw new Error('音名とオクターブ番号の間隔は0秒以上にしてください');if(!Number.isFinite(soundGap)||soundGap<0||!Number.isFinite(questionGap)||questionGap<0)throw new Error('間隔は0秒以上で指定してください');if(!selectedInstrumentPool().some(x=>{try{getSelectedRange(x);return true;}catch(_){return false;}}))throw new Error('選択した音域に対応する楽器がありません');if(['1','3'].includes(el.mode.value)&&!selectedInstrumentPool().some(x=>{try{const [a,b]=getSelectedRange(x);return chordEligible(x)&&b-a>=12;}catch(_){return false;}}))throw new Error('コード演奏に対応した楽器を選択してください');if(el.mode.value==='4'&&!selectedInstrumentPool().some(x=>{try{getRangeForMelody(x);return true;}catch(_){return false;}}))throw new Error('選択した楽器とメロディ音域が一致しません');if(el.mode.value==='3'&&el.progressionKeyMode.value==='1')parseKeyText(el.progressionKey.value);if(el.mode.value==='4'&&el.melodyRhythm?.value==='musical'&&(!Number.isFinite(Number(el.melodyTempo.value))||Number(el.melodyTempo.value)<40||Number(el.melodyTempo.value)>240))throw new Error('テンポは40〜240 BPMで指定してください');durationSec=duration;soundGapSec=soundGap;questionGapSec=questionGap;return minutes;}
+async function startSession(){if(playing||!soundLoaded)return;configureIOSAudio();if(el.speech.value==='on')primeSpeech();let minutes;try{minutes=validateSettings();}catch(e){el.status.textContent=e.message;return;}requestWakeLock();el.start.disabled=true;el.stop.disabled=true;try{await audioContext.resume();if(el.speech.value==='on')await speechPrimePromise;playing=true;runToken++;const token=runToken;endAt=Date.now()+minutes*60000;previousNote=-1;previousMelodyEnding=null;el.stop.disabled=false;el.status.textContent='トレーニング中';timerTicker=setInterval(updateTimer,250);updateTimer();sessionLoop(token).catch(e=>{if(token===runToken)stopSession('再生エラー：'+e.message);});}catch(e){el.status.textContent='再生準備エラー：'+e.message;el.start.disabled=false;el.stop.disabled=true;releaseWakeLock();}}
+function stopSession(reason='停止しました'){if(!playing&&el.start.disabled===false)return;playing=false;runToken++;clearTimers();releaseWakeLock();if(timerTicker){clearInterval(timerTicker);timerTicker=null;}stopAllNotes();try{speechSynthesis.cancel();}catch(_){}try{audioContext?.suspend();}catch(_){}el.start.disabled=!soundLoaded;el.stop.disabled=true;el.status.textContent=reason;el.remaining.textContent='残り時間：00:00';if(reason==='時間終了')el.answer.textContent='終了';}
 
 el.instrument.addEventListener('change',()=>{updateSettingsVisibility();updateInstrumentRange();});el.mode.addEventListener('change',updateSettingsVisibility);el.range.addEventListener('change',updateSettingsVisibility);el.melodyKeyMode.addEventListener('change',updateSettingsVisibility);el.melodyScaleMode.addEventListener('change',updateSettingsVisibility);el.melodyCategory.addEventListener('change',updateMelodyScales);el.progressionKeyMode.addEventListener('change',updateSettingsVisibility);for(const [id,output] of [['instrumentVolume','instrumentVolumeValue'],['speechVolume','speechVolumeValue']])el[id].addEventListener('input',()=>$(output).textContent=el[id].value+'%');el.speed.addEventListener('input',()=>el.speedValue.textContent=Number(el.speed.value).toFixed(1));el.start.addEventListener('click',startSession);el.stop.addEventListener('click',()=>stopSession('停止しました'));
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&playing){restoreAudioIfNeeded();requestWakeLock();}});
-window.addEventListener('pageshow',()=>{if(playing)restoreAudioIfNeeded();});
-// Do not stop on pagehide: iOS may fire it while switching apps or locking the screen.
-// A real navigation/unload still ends the browser document and cannot be kept alive by JavaScript.
-
+window.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&playing){configureIOSAudio();requestWakeLock();audioContext?.resume().catch(()=>{});}});window.addEventListener('pagehide',()=>{stopSession('停止しました');});
 
 buildInstrumentOptions();buildSpeechSettings();populateSettings();updateSettingsVisibility();el.start.disabled=true;el.speedValue.textContent=Number(el.speed.value).toFixed(1);setLoadProgress(0,'音源を読み込んでいます…');loadSoundBank().catch(err=>{setLoadProgress(0,'音源読み込みエラー：'+err.message);el.status.textContent='音源読み込みエラー：'+err.message;el.start.disabled=true;});

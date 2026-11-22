@@ -37,8 +37,18 @@
     <label>音階の設定<select id="melodyScaleMode"><option value="0">指定</option><option value="1">全分類からランダム</option><option value="2">選択した分類からランダム</option></select></label>
     <label>音階の分類<select id="melodyCategory"></select></label>
     <label>音階<select id="melodyScale"></select></label>
-    <label>音数<select id="melodyCount"><option value="0">ランダム（3〜8音）</option><option value="3">3音</option><option value="4">4音</option><option value="5">5音</option><option value="6">6音</option><option value="7">7音</option><option value="8">8音</option></select></label>
-
+    <label>音数<select id="melodyCount"><option value="0">ランダム（3〜8音）</option><option value="-1">ランダム（3〜32音）</option><option value="3">3音</option><option value="4">4音</option><option value="5">5音</option><option value="6">6音</option><option value="7">7音</option><option value="8">8音</option><option value="9">9音</option><option value="10">10音</option><option value="11">11音</option><option value="12">12音</option><option value="13">13音</option><option value="14">14音</option><option value="15">15音</option><option value="16">16音</option><option value="17">17音</option><option value="18">18音</option><option value="19">19音</option><option value="20">20音</option><option value="21">21音</option><option value="22">22音</option><option value="23">23音</option><option value="24">24音</option><option value="25">25音</option><option value="26">26音</option><option value="27">27音</option><option value="28">28音</option><option value="29">29音</option><option value="30">30音</option><option value="31">31音</option><option value="32">32音</option></select></label>
+    <label>リズム<select id="melodyRhythm"><option value="even">従来どおり（等間隔）</option><option value="musical">音楽的なリズム（4/4拍子）</option></select></label>
+    <fieldset><legend>音楽的なリズムの奏法・休符（個別にON／OFF）</legend>
+      <label><input type="checkbox" id="melodyLegato"> レガート（滑らかにつなぐ）</label>
+      <label><input type="checkbox" id="melodyStaccato"> スタッカート（短く切る）</label>
+      <label><input type="checkbox" id="melodyPhrase" checked> フレーズ終わりの保持と間</label>
+      <label><input type="checkbox" id="melodyRests"> 8分・4分休符</label>
+      <p class="small">両方の奏法をONにすると、レガートとスタッカートが音ごとに切り替わります。全音符・16分音符・三連符は自動的に含まれます。これらの設定は「音楽的なリズム」選択時のみ有効です。</p>
+    </fieldset>
+    <label>テンポ（BPM）<input id="melodyTempo" type="number" min="40" max="240" step="1" value="100"></label>
+    <label>前後のメロディのつながり<select id="melodyContinuity"><option value="off">従来どおり（独立）</option><option value="on">自然につなげる</option></select></label>
+    <p class="small">自然につなげる設定では、前のメロディの終音と次の開始音の距離を抑え、キーがランダムの場合も共通音や近い音域を優先します。リズムを有効にすると音の長さと間隔はテンポに合わせて変わります。</p>
   </section>
   <section class="panel">
     <h2>4. 再生・読み上げ設定</h2>
@@ -58,8 +68,6 @@
   </section>
   <footer>音源はページを開いたときに一括読み込みします。読み込み完了後に再生を開始できます。</footer>
 </main>
-<p id="audioDiagnostic" style="font-size:12px;color:#666;overflow-wrap:anywhere" aria-live="off">再生診断：待機中</p>
-<p id="speechDiagnostic" style="font-size:12px;color:#666" aria-live="off">読み上げ診断：待機中</p>
 <script type="module" src="app.js"></script>
 </body>
 </html>
