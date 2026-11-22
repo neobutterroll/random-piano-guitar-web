@@ -31,6 +31,8 @@
   <section class="panel hidden" id="melodySettings">
     <h2>3. メロディモード設定</h2>
     <label>音の選び方<select id="melodySelection"><option value="0">完全ランダム</option><option value="1">音階内ランダム</option></select></label>
+    <label>メロディ生成方式<select id="melodyComposition"><option value="melodic">自然な単旋律（音階・旋律中心）</option><option value="harmonic">コード進行に沿った旋律（伴奏なし）</option></select></label>
+    <p class="small">コード進行方式では内部で4小節の和声進行を生成し、コードの構成音を強拍で優先します。コード自体は鳴りません。</p>
     <label>メロディの流れ<select id="melodyStyle"><option value="random">ランダム</option><option value="natural">音楽理論に沿った自然な流れ</option></select></label>
     <label>キーの設定<select id="melodyKeyMode"><option value="0">指定</option><option value="1">ランダム</option></select></label>
     <label>キー<select id="melodyKey"></select></label>

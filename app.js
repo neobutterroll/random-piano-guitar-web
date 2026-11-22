@@ -5,7 +5,7 @@ const INSTRUMENTS = await fetch('./instruments.json').then(r => { if (!r.ok) thr
 const $ = id => document.getElementById(id);
 const el = {
   instrument:$('instrument'), mode:$('mode'), range:$('range'), customRange:$('customRange'), rangeMin:$('rangeMin'), rangeMax:$('rangeMax'),
-  ordinaryRange:$('ordinaryRange'), instrumentRange:$('instrumentRange'), melodySettings:$('melodySettings'), melodySelection:$('melodySelection'), melodyStyle:$('melodyStyle'), melodyKeyMode:$('melodyKeyMode'), melodyKey:$('melodyKey'),
+  ordinaryRange:$('ordinaryRange'), instrumentRange:$('instrumentRange'), melodySettings:$('melodySettings'), melodySelection:$('melodySelection'), melodyStyle:$('melodyStyle'), melodyComposition:$('melodyComposition'), melodyKeyMode:$('melodyKeyMode'), melodyKey:$('melodyKey'),
   melodyScaleMode:$('melodyScaleMode'), melodyCategory:$('melodyCategory'), melodyScale:$('melodyScale'), melodyCount:$('melodyCount'), melodyRange:$('melodyRange'), melodyRhythm:$('melodyRhythm'), melodyLegato:$('melodyLegato'), melodyStaccato:$('melodyStaccato'), melodyPhrase:$('melodyPhrase'), melodyRests:$('melodyRests'), melodyTempo:$('melodyTempo'), melodyContinuity:$('melodyContinuity'),
   minutes:$('minutes'), instrumentVolume:$('instrumentVolume'), speechVolume:$('speechVolume'), octaveGap:$('octaveGap'), duration:$('duration'), soundGap:$('soundGap'), questionGap:$('questionGap'), speech:$('speech'), speechModes:$('speechModes'), speed:$('speed'), speedValue:$('speedValue'),
   genre:$('genre'), progressionSettings:$('progressionSettings'), progressionKeyMode:$('progressionKeyMode'), progressionKeyWrap:$('progressionKeyWrap'), progressionKey:$('progressionKey'),
@@ -146,45 +146,54 @@ function weightedChoice(items, weight){
   return items[items.length-1];
 }
 function melodicRhythm(count){
-  // Durations and rests share a four-beat grid. Tuplets are grouped in threes.
   const opts={legato:!!el.melodyLegato?.checked,staccato:!!el.melodyStaccato?.checked,
-    phrase:!!el.melodyPhrase?.checked,rests:!!el.melodyRests?.checked,
-    };
-  const result=[];let position=0,tripletRemaining=0;
-  for(let i=0;i<count;i++){
-    const remaining=4-position;
-    let beats;
-    if(tripletRemaining>0){beats=1/3;tripletRemaining--;}
-    else{
-      const durations=[{v:0.5,w:3},{v:1,w:6},{v:1.5,w:2},{v:2,w:2}];
-      durations.push({v:4,w:0.7});
-      durations.push({v:0.25,w:2});
-      // A triplet group occupies one beat, with three equal onsets.
-      if(remaining>=1-1e-6&&count-i>=3)durations.push({v:1/3,w:2,triplet:true});
-      let possible=durations.filter(d=>d.v<=remaining+1e-6);
-      if(!possible.length)possible=[{v:remaining,w:1}];
-      const selected=weightedChoice(possible,d=>d.w);
-      beats=selected.v;
-      if(selected.triplet)tripletRemaining=2;
+    phrase:!!el.melodyPhrase?.checked,rests:!!el.melodyRests?.checked};
+  // Each pattern fills four beats. A motif is repeated with variations,
+  // instead of selecting durations independently at each note.
+  const patterns=[
+    [1,1,1,1],[0.5,0.5,1,0.5,0.5,1],[1.5,0.5,1,1],
+    [0.5,1,0.5,1.5,0.5],[0.25,0.25,0.5,1,1,1],
+    [1,1/3,1/3,1/3,1,1],[0.5,0.5,0.5,0.5,2],
+    [2,0.5,0.5,1],[4],[0.5,0.5,1,2]
+  ];
+  const motif=pick(patterns);
+  const result=[];
+  let measure=0, pos=0, current=motif, index=0;
+  while(result.length<count){
+    if(index>=current.length){
+      measure++; pos=0;index=0;
+      current=measure%4===2?motif:(Math.random()<0.4?motif:pick(patterns));
     }
-    const phraseEnd=opts.phrase&&(i===count-1||(i+1)%8===0);
-    // Rest after the note (not after the final note). Avoid disturbing triplet groups.
-    const after=4-(position+beats);
+    const beats=current[index++];
+    const i=result.length;
+    const endOfBar=pos+beats>=4-1e-6;
+    const phraseEnd=opts.phrase&&(i===count-1||(endOfBar&&measure%4===3));
     let rest=0;
-    if(opts.rests&&i<count-1&&tripletRemaining===0&&Math.random()<0.18){
-      const choices=[0.5,1].filter(v=>v<=after+1e-6);
-      if(choices.length)rest=pick(choices);
+    if(opts.rests&&i<count-1&&Math.random()<0.13&&beats<=1&&pos+beats<=3){
+      // The inserted rest is accounted for by shortening the following silence;
+      // it never changes the notated duration of the current event.
+      rest=beats<=0.5?0.5:1;
     }
     let articulation=0.86;
-    if(opts.legato&&opts.staccato)articulation=Math.random()<0.55?0.98:0.48;
+    if(opts.legato&&opts.staccato)articulation=Math.random()<0.68?0.98:0.5;
     else if(opts.legato)articulation=0.98;
-    else if(opts.staccato)articulation=0.48;
+    else if(opts.staccato)articulation=0.5;
     if(phraseEnd)articulation=Math.max(articulation,0.96);
-    result.push({beats,rest,articulation,phraseEnd});
-    position+=beats+rest;
-    if(position>=4-1e-6)position=0;
+    result.push({beats,rest,articulation,phraseEnd,measure,beatPosition:pos});
+    pos+=beats;
   }
   return result;
+}
+function melodyHarmony(scale,key,count,rhythm){
+  // Chords are built from degrees of the selected scale, rather than
+  // assuming a major scale when the user selects a mode or minor scale.
+  const degrees=D.SCALES[scale].map(x=>(key+x)%12);
+  const progression=pick([[0,5,3,4],[0,3,4,0],[0,4,5,3],[0,3,1,4]]);
+  return Array.from({length:count},(_,i)=>{
+    const measure=rhythm?.[i]?.measure??Math.floor(i/4);
+    const degree=progression[measure%progression.length]%degrees.length;
+    return new Set([0,2,4].map(offset=>degrees[(degree+offset)%degrees.length]));
+  });
 }
 function generateMelody(){
   const inst=chooseInstrument(),[fullLow,fullHigh]=getRangeForMelody(inst);
@@ -210,10 +219,13 @@ function generateMelody(){
   }):pick(allowedKeys);
   const scaleSet=new Set(D.SCALES[scaleName].map(x=>(key+x)%12));
   const natural=el.melodyStyle?.value==='natural';
-  const scaleOnly=el.melodySelection.value==='1'||natural;
+  const scaleOnly=el.melodySelection.value==='1'||natural||el.melodyComposition?.value==='harmonic';
   let candidates=Array.from({length:high-low+1},(_,i)=>low+i).filter(n=>!scaleOnly||scaleSet.has(n%12));
   if(!candidates.length){candidates=Array.from({length:fullHigh-fullLow+1},(_,i)=>fullLow+i).filter(n=>!scaleOnly||scaleSet.has(n%12));}
   if(!candidates.length)throw new Error('選択した条件では音を生成できません');
+  const harmonic=el.melodyComposition?.value==='harmonic';
+  const rhythm=el.melodyRhythm?.value==='musical'?melodicRhythm(count):null;
+  const harmony=harmonic?melodyHarmony(scaleName,key,count,rhythm):null;
   const notes=[];
   let previous=continuity?previousMelodyEnding:anchor;
   for(let i=0;i<count;i++){
@@ -225,17 +237,19 @@ function generateMelody(){
     }
     // End a phrase on stable degrees when available, but do not force large jumps.
     const isEnd=i===count-1||((i+1)%8===0);
-    const chosen=(natural||continuity)?weightedChoice(choices,n=>{
+    const chosen=(natural||continuity||harmonic)?weightedChoice(choices,n=>{
       const delta=Math.abs(n-previous);
       const stable=[0,4,7].includes((n-key+120)%12);
       const step=delta<=2?3:delta<=4?1.8:0.65;
       const close=1/(1+delta*0.45);
       const repeat=n===previous?0.3:1;
-      return step*close*repeat*(isEnd&&stable?2.6:1);
+      const chord=harmony?.[i];
+      const strong=rhythm?rhythm[i].beatPosition<0.01||Math.abs(rhythm[i].beatPosition-2)<0.01:i%4===0;
+      const chordWeight=chord?(chord.has(n%12)?(strong?5:2.5):(strong?0.3:1)):1;
+      return step*close*repeat*(isEnd&&stable?2.6:1)*chordWeight;
     }):pick(choices);
     notes.push(chosen);previous=chosen;
   }
-  const rhythm=el.melodyRhythm?.value==='musical'?melodicRhythm(count):null;
   return {inst,notes,key,scaleName,rhythm};
 }
 
