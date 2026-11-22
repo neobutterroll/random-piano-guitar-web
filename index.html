@@ -20,7 +20,7 @@
   <section class="panel hidden" id="progressionSettings">
     <h2>2. コード進行モード設定</h2>
     <label>ジャンル<select id="genre"><option>すべて</option><option>J-POP</option><option>ロック</option><option>ジャズ</option><option>マイナー</option></select></label>
-    <label>コード進行の種類<select id="progressionSource"><option value="legacy">従来のコード進行</option><option value="extended">拡張コード進行</option><option value="all">すべてからランダム</option></select></label>
+    <label>コード進行の種類<select id="progressionSource"><option value="legacy">従来のコード進行</option><option value="extended">拡張コード進行</option><option value="all">すべてからランダム</option><option value="theory" selected>音楽理論に沿ったランダム（非ダイアトニックを含む）</option></select></label>
     <label>転回形<select id="progressionInversion"><option value="root">基本形のみ</option><option value="random">基本形・転回形をランダム</option><option value="smooth">前後の声部進行を優先（おすすめ）</option></select></label>
     <label>キーの設定<select id="progressionKeyMode"><option value="0">ランダム</option><option value="1">指定</option></select></label>
     <label id="progressionKeyWrap" class="hidden">指定キー<input id="progressionKey" value="C" placeholder="C / F# / Bb"></label>
@@ -35,6 +35,7 @@
     <label>音の選び方<select id="melodySelection"><option value="0">完全ランダム</option><option value="1">音階内ランダム</option></select></label>
     <label>メロディ生成方式<select id="melodyComposition"><option value="melodic">自然な単旋律（音階・旋律中心）</option><option value="harmonic">コード進行に沿った旋律（伴奏なし）</option><option value="accompanied">コード進行に沿った旋律（伴奏あり）</option></select></label>
     <p class="small">コード進行方式では内部で4小節の和声進行を生成し、コードの構成音を強拍で優先します。「伴奏あり」では同じ楽器で低音域の和音も鳴らします。</p>
+    <div class="grid two"><label>メロディ音量 <output id="melodyVolumeValue">80%</output><input id="melodyVolume" type="range" min="0" max="100" step="1" value="80"></label><label>伴奏音量 <output id="accompanimentVolumeValue">85%</output><input id="accompanimentVolume" type="range" min="0" max="100" step="1" value="85"></label></div>
     <label>伴奏の演奏方法<select id="melodyAccompStyle"><option value="auto">自動（楽曲の展開に応じて変更）</option><option value="block">ブロックコード</option><option value="arpeggio">アルペジオ</option><option value="broken">分散和音</option><option value="bass">ベース＋和音</option></select></label>
     <label>メロディの流れ<select id="melodyStyle"><option value="random">ランダム</option><option value="natural">音楽理論に沿った自然な流れ</option></select></label>
     <label>キーの設定<select id="melodyKeyMode"><option value="0">指定</option><option value="1">ランダム</option></select></label>
