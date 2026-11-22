@@ -23,3 +23,14 @@
 .melody-harmony-panel .progression-chord{font-size:clamp(11px,3.3vw,16px)}
 .melody-harmony-panel .progression-degree{font-size:clamp(10px,2.9vw,13px)}
 @media(max-width:420px){.melody-harmony-panel .melody-chord-history{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}}
+
+/* All chords visible at question start; boxed named progressions wrap on phones. */
+.melody-harmony-panel{max-width:100%;min-width:0;overflow-wrap:anywhere}
+.melody-progression-group{border:2px solid #91add6;border-radius:10px;padding:7px;margin:8px 0;background:#f7faff;max-width:100%;box-sizing:border-box}
+.melody-progression-title{font-size:13px;font-weight:700;color:#244b7c;margin-bottom:6px;line-height:1.5}
+.melody-progression-chords{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,76px),1fr));gap:5px;max-width:100%;width:100%}
+.melody-progression-chords .progression-item{min-width:0;max-width:100%;padding:5px 2px;box-sizing:border-box;border:1px solid #cbd8eb;border-radius:6px;background:white;overflow-wrap:anywhere}
+.melody-progression-chords .progression-active{background:#2868c7;color:white;border-color:#2868c7}
+.melody-progression-chords .progression-active .progression-degree{color:white}
+.melody-progression-chords .progression-chord{font-size:clamp(11px,3.4vw,16px);overflow-wrap:anywhere}
+@media(max-width:420px){.melody-progression-chords{grid-template-columns:repeat(3,minmax(0,1fr))}}
