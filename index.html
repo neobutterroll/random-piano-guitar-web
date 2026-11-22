@@ -20,6 +20,8 @@
   <section class="panel hidden" id="progressionSettings">
     <h2>2. コード進行モード設定</h2>
     <label>ジャンル<select id="genre"><option>すべて</option><option>J-POP</option><option>ロック</option><option>ジャズ</option><option>マイナー</option></select></label>
+    <label>コード進行の種類<select id="progressionSource"><option value="legacy">従来のコード進行</option><option value="extended">拡張コード進行</option><option value="all">すべてからランダム</option></select></label>
+    <label>転回形<select id="progressionInversion"><option value="root">基本形のみ</option><option value="random">基本形・転回形をランダム</option><option value="smooth">前後の声部進行を優先（おすすめ）</option></select></label>
     <label>キーの設定<select id="progressionKeyMode"><option value="0">ランダム</option><option value="1">指定</option></select></label>
     <label id="progressionKeyWrap" class="hidden">指定キー<input id="progressionKey" value="C" placeholder="C / F# / Bb"></label>
   </section>
@@ -33,10 +35,11 @@
     <label>音の選び方<select id="melodySelection"><option value="0">完全ランダム</option><option value="1">音階内ランダム</option></select></label>
     <label>メロディ生成方式<select id="melodyComposition"><option value="melodic">自然な単旋律（音階・旋律中心）</option><option value="harmonic">コード進行に沿った旋律（伴奏なし）</option><option value="accompanied">コード進行に沿った旋律（伴奏あり）</option></select></label>
     <p class="small">コード進行方式では内部で4小節の和声進行を生成し、コードの構成音を強拍で優先します。「伴奏あり」では同じ楽器で低音域の和音も鳴らします。</p>
+    <label>伴奏の演奏方法<select id="melodyAccompStyle"><option value="auto">自動（楽曲の展開に応じて変更）</option><option value="block">ブロックコード</option><option value="arpeggio">アルペジオ</option><option value="broken">分散和音</option><option value="bass">ベース＋和音</option></select></label>
     <label>メロディの流れ<select id="melodyStyle"><option value="random">ランダム</option><option value="natural">音楽理論に沿った自然な流れ</option></select></label>
     <label>キーの設定<select id="melodyKeyMode"><option value="0">指定</option><option value="1">ランダム</option></select></label>
     <label>キー<select id="melodyKey"></select></label>
-    <label>音階の設定<select id="melodyScaleMode"><option value="0">指定</option><option value="1">全分類からランダム</option><option value="2">選択した分類からランダム</option></select></label>
+    <label>音階の設定<select id="melodyScaleMode"><option value="0">指定</option><option value="1">全分類からランダム</option><option value="2">選択した分類からランダム</option><option value="3">音楽的に変化（近い音階を優先）</option></select></label>
     <label>音階の分類<select id="melodyCategory"></select></label>
     <label>音階<select id="melodyScale"></select></label>
     <label>音数<select id="melodyCount"><option value="0">ランダム（3〜8音）</option><option value="-1">ランダム（3〜32音）</option><option value="3">3音</option><option value="4">4音</option><option value="5">5音</option><option value="6">6音</option><option value="7">7音</option><option value="8">8音</option><option value="9">9音</option><option value="10">10音</option><option value="11">11音</option><option value="12">12音</option><option value="13">13音</option><option value="14">14音</option><option value="15">15音</option><option value="16">16音</option><option value="17">17音</option><option value="18">18音</option><option value="19">19音</option><option value="20">20音</option><option value="21">21音</option><option value="22">22音</option><option value="23">23音</option><option value="24">24音</option><option value="25">25音</option><option value="26">26音</option><option value="27">27音</option><option value="28">28音</option><option value="29">29音</option><option value="30">30音</option><option value="31">31音</option><option value="32">32音</option></select></label>
