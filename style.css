@@ -3,3 +3,15 @@
 .custom-instrument-list{max-height:290px;overflow-y:auto;border:1px solid #aaa;border-radius:8px;padding:10px;margin-bottom:10px}.custom-instrument-list fieldset{border:0;border-bottom:1px solid #ddd;margin:0 0 10px;padding:6px}.custom-instrument-list legend{font-weight:bold}.instrument-check{display:inline-flex!important;align-items:center;gap:5px;margin:5px 12px 5px 0;font-size:.9rem}.instrument-check input{width:auto!important}.instrument-check:has(input:disabled){opacity:.45}
 
 .progression-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:8px}.progression-item{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5px 9px;border-radius:7px;min-width:56px}.progression-chord{font-size:17px;font-weight:700}.progression-degree{font-size:13px;font-weight:600;color:#64748b;margin-top:2px}.progression-active{background:#2868c7;color:white}.progression-active .progression-degree{color:white}
+
+/* Clarity improvements for long progressions and touch controls */
+#melodySettings .grid.two{align-items:end}
+#melodySettings input[type="range"]{width:100%;min-height:34px;accent-color:#2868c7;touch-action:pan-x}
+#melodySettings output{font-variant-numeric:tabular-nums;font-weight:700;color:#2868c7}
+.melody-chord-history{justify-content:flex-start;overflow-x:auto;flex-wrap:nowrap;padding:8px 2px 12px;scrollbar-width:thin;max-width:100%}
+.melody-chord-history .progression-item{flex:0 0 auto;min-width:76px;border:1px solid #d8e1ee;background:#f8fafc}
+.melody-chord-history .progression-active{background:#2868c7;border-color:#2868c7;color:#fff}
+.progression-bar{font-size:10px;opacity:.8;margin-bottom:2px}
+.panel .small{font-size:12px;line-height:1.6;color:#556477;margin:5px 0 12px}
+.panel label{line-height:1.55}
+@media(max-width:600px){.melody-chord-history .progression-item{min-width:70px}.progression-chord{font-size:15px}}

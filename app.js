@@ -95,9 +95,9 @@ function updateMelodyMix(){
 }
 for(const [id,label] of [['melodyVolume','melodyVolumeValue'],['accompanimentVolume','accompanimentVolumeValue']]){
  const slider=$(id),output=$(label);
- slider.addEventListener('input',()=>{output.textContent=slider.value+'%';updateMelodyMix();});
+ slider.addEventListener('input',()=>{output.value=slider.value+'%';output.textContent=slider.value+'%';updateMelodyMix();});
 }
-function noteOn(note){synth.noteOn(0,note,100);activeNotes.push(note);}
+function noteOn(note){if(el.mode.value==='4')updateMelodyMix();synth.noteOn(0,note,100);activeNotes.push(note);}
 function noteOff(note){try{synth.noteOff(0,note);}catch(_){}activeNotes=activeNotes.filter(x=>x!==note);}
 function stopAllNotes(){for(const n of [...activeNotes])noteOff(n);activeNotes=[];}
 function setDisplayLines(lines,instrument,status,kind='normal'){el.answer.replaceChildren();el.answer.className='answer-'+kind;for(let i=0;i<lines.length;i++){const div=document.createElement('div');div.className=`answer-line answer-line-${i}`;div.textContent=lines[i];el.answer.append(div);}el.instrumentLabel.textContent='楽器：'+(instrument?.name||'—');el.status.textContent=status||'再生中';}
@@ -105,7 +105,7 @@ function setDisplayLines(lines,instrument,status,kind='normal'){el.answer.replac
 // Do not infer chromaticism from the scale or add misleading "diatonic" labels.
 function musicalProgressionLabel(name){
  const raw=String(name||'').trim();
- if(!raw||raw==='ダイアトニック進行')return 'I–IV–V–I（基本進行）';
+ if(!raw||raw==='ダイアトニック進行')return '音階構成音による和声';
  const techniques=[
   [/セカンダリードミナント|V\/ii|V\/V|属七の連鎖|ドミナントの連鎖|III7–VI7–II7–V7/, 'セカンダリードミナント'],
   [/バックドア/, 'バックドア進行'],
@@ -258,12 +258,12 @@ function melodyHarmony(scale,key,count,rhythm){
  const degrees=D.SCALES[scale].map(x=>(key+x)%12);
  const majorLike=degrees.length===7&&[0,2,4,5,7,9,11].every(x=>D.SCALES[scale].includes(x));
  const minorLike=degrees.length===7&&[0,2,3,5,7,8,10].every(x=>D.SCALES[scale].includes(x));
- if(!songHarmony||songHarmony.key!==key||songHarmony.scale!==scale){
+ if(!songHarmony||songHarmony.key!==key||songHarmony.scale!==scale||Math.floor((rhythm?.[0]?.measure??songMeasure)/16)!==songHarmony.block){
   const pool=SONG_PROGRESSIONS.filter(p=>majorLike?!p.name.startsWith('マイナー')&&p.name!=='アンダルシア進行':minorLike?p.name.startsWith('マイナー')||p.name==='アンダルシア進行':false);
   const theoryPool=THEORY_PROGRESSIONS.filter(p=>majorLike?p.mode==='major':minorLike?p.mode==='minor':false);
-  const theory=theoryPool.length&&Math.random()<0.55?pick(theoryPool):null;
-  const progression=theory?{name:theory.name,chords:theory.chords}:pool.length?pick(pool):{name:'I–IV–V–I（基本進行）',degrees:[0,3,4,0],types:[]};
-  songHarmony={key,scale,progression,cache:new Map()};
+  const theory=theoryPool.length&&Math.random()<0.72?pick(theoryPool):null;
+  const progression=theory?{name:theory.name,chords:theory.chords}:pool.length?pick(pool):{name:'音階構成音による和声',degrees:[0,3,4,0],types:[]};
+  songHarmony={key,scale,progression,block:Math.floor((rhythm?.[0]?.measure??songMeasure)/16),cache:new Map()};
  }
  const prog=songHarmony.progression;
  return Array.from({length:count},(_,i)=>{
@@ -320,7 +320,7 @@ function setAccompanimentPreset(inst){
   synth.controllerChange(1,0,inst.bank);
   synth.controllerChange(1,32,0);
   synth.programChange(1,inst.program);
-  synth.controllerChange(1,7,Math.round(Number(el.instrumentVolume.value)*0.72));
+  synth.controllerChange(1,7,Math.round(Number(el.accompanimentVolume.value)*1.27));
 }
 const MUSICAL_SCALE_FAMILIES=[
   ['メジャー','アイオニアン','リディアン','ミクソリディアン'],
@@ -373,24 +373,25 @@ function chordInfo(chord,key,scale,measure){
   name:D.NAMES[chord.root]+chord.quality+slash};
 }
 function displayMelodyChords(m,index){
-  if(!m.accompanied)return;
-  const active=m.chordInfos?.[index];if(!active)return;
-  const heading=document.createElement('div');heading.className='sequence-heading';
-  heading.textContent='コード進行：'+musicalProgressionLabel(m.progressionName||'自動生成');
-  el.answer.append(heading);
-  const row=document.createElement('div');row.className='progression-grid';
-  const recent=[];for(let i=0;i<m.chordInfos.length;i++){
-    const c=m.chordInfos[i];if(c&&!recent.some(x=>x.measure===c.measure))recent.push(c);
-  }
-  const at=recent.findIndex(x=>x.measure===active.measure);
-  for(const c of recent.slice(Math.max(0,at-1),at+3)){
-    const item=document.createElement('div');item.className='progression-item'+(c.measure===active.measure?' progression-active':'');
-    const name=document.createElement('div');name.className='progression-chord';
-    name.textContent=c.name;
-    const degree=document.createElement('div');degree.className='progression-degree';degree.textContent=c.degree;
-    item.append(name,degree);row.append(item);
-  }
-  el.answer.append(row);
+ if(!m.harmony)return;
+ const active=m.chordInfos?.[index];if(!active)return;
+ const heading=document.createElement('div');heading.className='sequence-heading';
+ heading.textContent='コード進行：'+musicalProgressionLabel(m.progressionName||'音階構成音による和声');
+ el.answer.append(heading);
+ const row=document.createElement('div');row.className='progression-grid melody-chord-history';
+ const measures=[];const seen=new Set();
+ for(let i=0;i<m.chordInfos.length;i++){
+  const c=m.chordInfos[i];if(!c||seen.has(c.measure))continue;
+  seen.add(c.measure);measures.push(c);
+ }
+ for(const c of measures){
+  const item=document.createElement('div');item.className='progression-item'+(c.measure===active.measure?' progression-active':'');
+  const number=document.createElement('div');number.className='progression-bar';number.textContent=(c.measure+1)+'小節';
+  const name=document.createElement('div');name.className='progression-chord';name.textContent=c.name;
+  const degree=document.createElement('div');degree.className='progression-degree';degree.textContent=c.degree;
+  item.append(number,name,degree);row.append(item);
+ }
+ el.answer.append(row);
 }
 function accompanimentStyle(section){
   const mode=el.melodyAccompStyle?.value||'auto';
@@ -522,6 +523,7 @@ async function runChord(token){let inst=null,chord=null;for(const candidate of s
 async function runInterval(token){const q=generateInterval(),notes=[q.first,q.second],lang=speechLang('2','info');for(let i=0;i<2;i++){setSequenceDisplay('音程',notes,i,q.inst,`音程再生中（${i+1}音目）`);await playSingleFor(q.inst,notes[i],durationSec*1000,token);if(token!==runToken)return;if(i===0)await sleep(soundGapSec*1000);}if(token!==runToken)return;const intervalJa=D.INTERVALS[String(q.gap)]||`${q.gap}半音`;const intervalEn=intervalName(q.gap,'en-US');setSequenceDisplay(`${intervalJa}（${q.direction}）`,notes,1,q.inst,'音程の問題が終了');const info=intervalName(q.gap,lang)+(lang==='en-US'?(q.direction==='上昇'?' ascending':' descending'):(q.direction==='上昇'?'上昇':'下降'));await speakPart('2','info',info);await speakNotes(notes,'2');await speakInstrument(q.inst,'2');if(token===runToken)await sleep(questionGapSec*1000);}
 async function runMelody(token){
   const m=generateMelody();
+  updateMelodyMix();
   const tempo=Math.max(40,Math.min(240,Number(el.melodyTempo?.value)||100));
   const beatMs=60000/tempo;
   let accompaniment=[];
@@ -538,7 +540,7 @@ async function runMelody(token){
       if(m.harmony?.[i]){
         accompaniment=accompanimentNotes(m.harmony[i],m.notes[i],m.inst);
         if(accompaniment.length){
-          setAccompanimentPreset(m.inst);
+          setAccompanimentPreset(m.inst);updateMelodyMix();
           const style=accompanimentStyle(rhythm?.section??0);
           const notes=style==='broken'?[...accompaniment].reverse():accompaniment;
           if(style==='block'){for(const n of notes)synth.noteOn(1,n,62);}
