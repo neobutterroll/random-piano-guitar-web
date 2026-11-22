@@ -297,16 +297,28 @@ function harmonicTransitionScore(previous,next,key){
  if([7,11,2].includes(lastDegree)&&[0,9,5].includes(nextDegree))score*=1.6;
  return score;
 }
-function chooseSongProgression(majorLike,minorLike,previous,lastChord,key,degrees){
- const standard=SONG_PROGRESSIONS.filter(p=>majorLike?!p.name.startsWith('マイナー')&&p.name!=='アンダルシア進行':minorLike?p.name.startsWith('マイナー')||p.name==='アンダルシア進行':false);
- const chromatic=THEORY_PROGRESSIONS.filter(p=>majorLike?p.mode==='major':minorLike?p.mode==='minor':false);
- const extended=EXTENDED_PROGRESSION_LIBRARY.filter(p=>majorLike?p.mode==='major':minorLike?p.mode==='minor':false);
- const all=[...standard,...extended,...chromatic];
- if(!all.length)return {name:'名称未設定の進行',degrees:[0,3,4,0],types:[]};
+// One stylistic palette per continuous harmonic passage. J-POP and rock share
+// common pop patterns; jazz-specific dominant chains stay in jazz passages.
+const MELODY_GENRES=['J-POP','ロック','ジャズ'];
+function songProgressionGenre(){
+ return weightedChoice(MELODY_GENRES,g=>g==='J-POP'?55:g==='ロック'?30:15);
+}
+function chooseSongProgression(majorLike,minorLike,previous,lastChord,key,degrees,genre){
+ const standard=SONG_PROGRESSIONS.filter(p=>majorLike?!p.name.startsWith('マイナー')&&p.name!=='アンダルシア進行'&&p.name!=='i–iv–VII–III':minorLike?p.name.startsWith('マイナー')||p.name==='アンダルシア進行'||p.name==='i–iv–VII–III':false);
+ const chromatic=THEORY_PROGRESSIONS.filter(p=>p.mode===(majorLike?'major':'minor')&&(p.genre===genre||p.genre==='マイナー'));
+ const extended=EXTENDED_PROGRESSION_LIBRARY.filter(p=>p.mode===(majorLike?'major':'minor')&&(p.genre===genre||p.genre==='マイナー'));
+ const stylistic=standard.filter(p=>{
+  if(genre==='ジャズ')return /ii–V|I–vi|循環|ブルース|マイナー/.test(p.name);
+  if(genre==='ロック')return /I–V–vi–IV|ブルース|カノン|マイナー|アンダルシア/.test(p.name);
+  return !/ブルース|ii–V–I–vi|I–vi–ii–V/.test(p.name);
+ });
+ const all=[...stylistic,...extended,...chromatic];
+ if(!all.length)return {name:'I–IV–V–I（基本進行）',degrees:[0,3,4,0],types:[]};
  return weightedChoice(all,p=>{
-  let w=standard.includes(p)?3.5:extended.includes(p)?2.4:1.4;
-  if(/王道|カノン|I–V–vi–IV|循環/.test(p.name))w*=1.8;
-  if(/セカンダリー|借用|バックドア|ドミナント/.test(p.name))w*=1.15;
+  let w=stylistic.includes(p)?4:extended.includes(p)?3:1.8;
+  if(genre==='J-POP'&&/王道|カノン|借用|クリシェ/.test(p.name))w*=2.1;
+  if(genre==='ロック'&&/I–V–vi–IV|ブルース|sus4|♭VI/.test(p.name))w*=2;
+  if(genre==='ジャズ'&&/ii–V|循環|バックドア|セカンダリー/.test(p.name))w*=2.1;
   if(previous&&p.name===previous.name)w*=0.08;
   const first=progressionEntries(p,key,degrees)[0];
   return w*harmonicTransitionScore(lastChord,first,key);
@@ -342,7 +354,7 @@ function melodyHarmony(scale,key,count,rhythm){
  const majorLike=degrees.length===7&&[0,2,4,5,7,9,11].every(x=>D.SCALES[scale].includes(x));
  const minorLike=degrees.length===7&&[0,2,3,5,7,8,10].every(x=>D.SCALES[scale].includes(x));
  if(!songHarmony||songHarmony.key!==key||songHarmony.scale!==scale){
-  songHarmony={key,scale,progression:null,progressionIndex:0,groupId:0,lastSlotId:null,cache:new Map(),harmonicPatterns:new Map(),previousProgression:null,lastChord:null,questionEnd:null,phraseChordCount:0,phraseTarget:0};
+  songHarmony={key,scale,progression:null,progressionIndex:0,groupId:0,lastSlotId:null,cache:new Map(),harmonicPatterns:new Map(),previousProgression:null,lastChord:null,questionEnd:null,phraseChordCount:0,phraseTarget:0,genre:songProgressionGenre(),groupHistory:new Map()};
  }
  const h=songHarmony,result=[];
  const startBar=rhythm?.[0]?.measure??songMeasure;
@@ -362,7 +374,7 @@ function melodyHarmony(scale,key,count,rhythm){
   const change=finished||branch||phraseComplete;
   if(change){
    const prior=h.progression;
-   h.progression=chooseSongProgression(majorLike,minorLike,prior,h.lastChord,key,degrees);
+   h.progression=chooseSongProgression(majorLike,minorLike,prior,h.lastChord,key,degrees,h.genre);
    h.progressionIndex=0;h.groupId++;h.phraseChordCount=0;
    const newLength=h.progression.chords?.length||h.progression.degrees.length;
    // Weights: 2 chords 20%, 3 chords 35%, 4 chords 30%, full phrase 15%.
@@ -377,6 +389,11 @@ function melodyHarmony(scale,key,count,rhythm){
    progressionPosition:idx+1,progressionLength:prog.chords?.length||prog.degrees.length};
   h.lastChord=chord;h.lastSlotId=slotId;
   h.cache.set(slotId,chord);result.push(chord);
+  // Store the complete current phrase across question boundaries.
+  const history=h.groupHistory.get(h.groupId)||[];
+  history.push(chordInfo(chord,key,scale,measure));
+  h.groupHistory.set(h.groupId,history);
+  if(h.groupHistory.size>12)h.groupHistory.delete(h.groupHistory.keys().next().value);
   if(h.cache.size>256)h.cache.delete(h.cache.keys().next().value);
  }
  h.questionEnd=result.at(-1)?.measure+':'+result.at(-1)?.slot;
@@ -483,6 +500,14 @@ function displayMelodyChords(m,index){
    if(seen.has(id))continue;seen.add(id);
    let group=groups.at(-1);
    if(!group||group.id!==c.groupId){group={id:c.groupId,name:c.progressionName,items:[]};groups.push(group);}
+   if(!group.items.length){
+    const history=songHarmony?.groupHistory?.get(c.groupId)||[];
+    const firstCurrent=c.measure+':'+c.slot;
+    for(const old of history){
+     if(old.measure+':'+old.slot===firstCurrent)break;
+     group.items.push({...old,previousQuestion:true});
+    }
+   }
    group.items.push(c);
   }
   for(const group of groups){
@@ -491,9 +516,9 @@ function displayMelodyChords(m,index){
    title.textContent=progressionWithDegrees(group.name,group.items)+'（この枠の範囲）';wrapper.append(title);
    const row=document.createElement('div');row.className='melody-progression-chords';
    for(const c of group.items){
-    const item=document.createElement('div');item.className='progression-item';item.dataset.harmonyId=c.measure+':'+c.slot;
+    const item=document.createElement('div');item.className='progression-item';item.dataset.harmonyId=c.measure+':'+c.slot;if(c.previousQuestion)item.classList.add('previous-question-chord');
     const number=document.createElement('div');number.className='progression-bar';
-    number.textContent=(c.measure+1)+'小節'+(c.slot?' / '+(c.slot+1)+'番目':' / 1番目');
+    number.textContent=(c.previousQuestion?'前問・':'')+(c.measure+1)+'小節'+(c.slot?' / '+(c.slot+1)+'番目':' / 1番目');
     const name=document.createElement('div');name.className='progression-chord';name.textContent=c.name;
     const degree=document.createElement('div');degree.className='progression-degree';degree.textContent=c.degree;
     item.append(number,name,degree);row.append(item);

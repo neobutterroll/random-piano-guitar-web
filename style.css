@@ -43,3 +43,12 @@
 .result #answer .melody-progression-chords{display:grid;width:100%;grid-template-columns:repeat(auto-fill,minmax(min(100%,82px),1fr));gap:6px;min-width:0}
 .result #answer .melody-progression-chords .progression-item{min-width:0;width:100%;max-width:100%;overflow-wrap:anywhere}
 @media(max-width:420px){.result #answer .melody-progression-chords{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* Four compact chord cards per row, including on narrow iPhone screens. */
+.result #answer .melody-progression-chords,
+.melody-harmony-panel .melody-progression-chords {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;width:100%;max-width:100%;min-width:0;}
+.result #answer .melody-progression-chords .progression-item {min-width:0;max-width:100%;width:100%;padding:4px 1px;}
+.melody-harmony-panel .progression-chord {font-size:clamp(10px,2.8vw,13px);line-height:1.2;}
+.melody-harmony-panel .progression-degree,.melody-harmony-panel .progression-bar {font-size:10px;line-height:1.2;overflow-wrap:anywhere;}
+.melody-harmony-panel .previous-question-chord {opacity:.64;border-style:dashed!important;}
+.melody-harmony-panel .melody-progression-title {overflow-wrap:anywhere;}
