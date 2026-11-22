@@ -6,7 +6,7 @@ const $ = id => document.getElementById(id);
 const el = {
   instrument:$('instrument'), mode:$('mode'), range:$('range'), customRange:$('customRange'), rangeMin:$('rangeMin'), rangeMax:$('rangeMax'),
   ordinaryRange:$('ordinaryRange'), instrumentRange:$('instrumentRange'), melodySettings:$('melodySettings'), melodySelection:$('melodySelection'), melodyStyle:$('melodyStyle'), melodyComposition:$('melodyComposition'), melodyKeyMode:$('melodyKeyMode'), melodyKey:$('melodyKey'),
-  melodyScaleMode:$('melodyScaleMode'), melodyCategory:$('melodyCategory'), melodyScale:$('melodyScale'), melodyCount:$('melodyCount'), melodyRange:$('melodyRange'), melodyRhythm:$('melodyRhythm'), melodyLegato:$('melodyLegato'), melodyStaccato:$('melodyStaccato'), melodyPhrase:$('melodyPhrase'), melodyRests:$('melodyRests'), melodyTempo:$('melodyTempo'), melodyContinuity:$('melodyContinuity'),
+  melodyScaleMode:$('melodyScaleMode'), melodyCategory:$('melodyCategory'), melodyScale:$('melodyScale'), melodyCount:$('melodyCount'), melodyRange:$('melodyRange'), melodyRhythm:$('melodyRhythm'), melodyMeter:$('melodyMeter'), melodyTempo:$('melodyTempo'), melodyContinuity:$('melodyContinuity'),
   minutes:$('minutes'), instrumentVolume:$('instrumentVolume'), speechVolume:$('speechVolume'), octaveGap:$('octaveGap'), duration:$('duration'), soundGap:$('soundGap'), questionGap:$('questionGap'), speech:$('speech'), speechModes:$('speechModes'), speed:$('speed'), speedValue:$('speedValue'),
   genre:$('genre'), progressionSettings:$('progressionSettings'), progressionKeyMode:$('progressionKeyMode'), progressionKeyWrap:$('progressionKeyWrap'), progressionKey:$('progressionKey'),
   answer:$('answer'), instrumentLabel:$('instrumentLabel'), status:$('status'), remaining:$('remaining'), soundStatus:$('soundStatus'), loadBar:$('loadBar'), loadPercent:$('loadPercent'), start:$('start'), stop:$('stop')
@@ -145,48 +145,67 @@ function weightedChoice(items, weight){
   for(let i=0;i<items.length;i++){r-=weights[i];if(r<=0)return items[i];}
   return items[items.length-1];
 }
-// Four-measure form: calm A section -> active B section -> return.
-// Each question continues the form rather than starting a new song.
-function songPattern(section,measureInPhrase){
-  const calm=[[1,1,2],[1,0.5,0.5,2],[1.5,0.5,2],[2,1,1],[1,1,1,1]];
-  const active=[[0.5,0.5,1,1,1],[1,0.5,0.5,1,1],[0.5,0.5,0.5,0.5,2],[1.5,0.5,1,1],[1,1,0.5,0.5,1]];
-  const pool=section===1?active:calm;
-  if(measureInPhrase===3)return section===1?[1,1,2]:[2,2];
-  if(measureInPhrase===2&&songMotif)return songMotif.slice();
-  const p=pick(pool).slice();
-  if(measureInPhrase===0)songMotif=p.slice();
-  // Triplets and sixteenths are occasional ornaments, not the default.
-  if(section===1&&Math.random()<0.08){
-    const k=p.findIndex(x=>x===1);
-    if(k>=0)p.splice(k,1,1/3,1/3,1/3);
-  }else if(section===1&&Math.random()<0.07){
-    const k=p.findIndex(x=>x===1);
-    if(k>=0)p.splice(k,1,0.25,0.25,0.5);
+// Structured melody: repeating motifs, a calm verse, an active section, and a return.
+// Meter is selected once per 16-bar block; a question is just an excerpt of the song.
+let songMeter='4/4', songMeterBlock=-1, songRhythmCarry=null;
+const METER_BEATS={'4/4':4,'3/4':3,'2/4':2,'6/8':3,'5/4':5};
+const METER_GROUPS={'4/4':[2,2],'3/4':[3],'2/4':[2],'6/8':[1.5,1.5],'5/4':[3,2]};
+function meterAtBar(bar){
+  const mode=el.melodyMeter?.value||'4/4';
+  if(mode!=='random'){songMeter=mode;songMeterBlock=Math.floor(bar/16);return mode;}
+  const block=Math.floor(bar/16);
+  if(block!==songMeterBlock){songMeterBlock=block;songMeter=pick(['4/4','4/4','3/4','6/8','2/4','5/4']);}
+  return songMeter;
+}
+function rhythmPattern(meter,section,phrasePosition){
+  const total=METER_BEATS[meter];
+  const groups=METER_GROUPS[meter];
+  // Keep a recognisable pulse. Small notes are embellishments, not the backbone.
+  if(phrasePosition===3)return [total];
+  if(phrasePosition===2&&songMotif?.meter===meter)return songMotif.beats.slice();
+  let beats=[];
+  if(section===0){
+    beats=pick([groups.slice(),[total/2,total/2],[total],
+      total>=3?[1,1,total-2]:[1,total-1]]).filter(x=>x>0);
+  }else{
+    beats=pick([groups.slice(),[total/2,total/2],
+      total>=3?[0.5,0.5,1,total-2]:[0.5,0.5,total-1],
+      total>=3?[1,0.5,0.5,total-2]:[1,total-1]]).filter(x=>x>0);
   }
-  return p;
+  if(section===1&&Math.random()<0.035){
+    const index=beats.findIndex(x=>x>=1);
+    if(index>=0){const value=beats[index];beats.splice(index,1,1/3,1/3,1/3,...(value>1?[value-1]:[]));}
+  }else if(section===1&&Math.random()<0.035){
+    const index=beats.findIndex(x=>x>=1);
+    if(index>=0){const value=beats[index];beats.splice(index,1,0.25,0.25,0.5,...(value>1?[value-1]:[]));}
+  }
+  if(phrasePosition===0)songMotif={meter,beats:beats.slice()};
+  return beats;
 }
 function melodicRhythm(count){
-  const result=[];let measure=songMeasure, current=[],pos=0,index=0;
+  const result=[];let bar=songRhythmCarry?.bar??songMeasure,position=songRhythmCarry?.position??0,pattern=songRhythmCarry?.pattern?.slice()??[],idx=songRhythmCarry?.idx??0;
+  // Complete a bar before beginning the next question: songMeasure is a bar cursor.
   while(result.length<count){
-    if(index>=current.length){
-      const section=Math.floor(measure/8)%3===1?1:0;
-      current=songPattern(section,measure%4);index=0;pos=0;
-    }
-    const section=Math.floor(measure/8)%3===1?1:0;
-    const beats=current[index++];
-    const endOfBar=pos+beats>=4-1e-6;
-    const phraseEnd=endOfBar&&measure%4===3;
-    const final=result.length===count-1;
-    // Legato predominates. Short detached notes are rare accents.
-    let articulation=section===1?0.91:0.97;
-    if(Math.random()<(section===1?0.07:0.025))articulation=0.55;
-    if(phraseEnd||final)articulation=0.99;
-    const rest=endOfBar&&measure%4===1&&Math.random()<0.12?0.5:0;
-    result.push({beats,rest,articulation,phraseEnd,measure,beatPosition:pos,section});
-    pos+=beats;
-    if(endOfBar){measure++;current=[];index=0;}
+    const meter=meterAtBar(bar),total=METER_BEATS[meter];
+    const section=Math.floor(bar/8)%3===1?1:0;
+    if(idx>=pattern.length){pattern=rhythmPattern(meter,section,bar%4);idx=0;position=0;}
+    const beats=pattern[idx++];
+    const endOfBar=position+beats>=total-1e-6;
+    const phraseEnd=endOfBar&&bar%4===3;
+    // Most notes are connected. Detached accents and rests are uncommon.
+    let articulation=section===1?0.94:0.98;
+    if(Math.random()<(section===1?0.045:0.015))articulation=0.58;
+    if(phraseEnd)articulation=0.99;
+    const rest=phraseEnd&&Math.random()<0.3?0.5:0;
+    result.push({beats,rest,articulation,phraseEnd,measure:bar,beatPosition:position,section,meter});
+    position+=beats;
+    if(endOfBar){bar++;idx=0;pattern=[];}
   }
-  songMeasure=measure;
+  // Preserve unfinished bar position for next question by carrying remaining events.
+  // Questions can end mid-bar, but the next question continues its rhythmic motif.
+  if(idx<pattern.length){songRhythmCarry={bar,pattern:pattern.slice(),idx,position};}
+  else songRhythmCarry=null;
+  songMeasure=bar;
   return result;
 }
 function melodyHarmony(scale,key,count,rhythm){
@@ -202,22 +221,39 @@ function melodyHarmony(scale,key,count,rhythm){
 }
 function accompanimentNotes(chord,melody,inst){
   if(!chord)return [];
-  const low=Math.max(inst.range[0],melody-24),high=Math.min(inst.range[1],melody-5);
-  const out=[];
-  for(const pc of chord){
-    const notes=Array.from({length:high-low+1},(_,i)=>low+i).filter(n=>n%12===pc&&!out.includes(n));
-    if(notes.length)out.push(notes.sort((a,b)=>Math.abs(a-(melody-12))-Math.abs(b-(melody-12)))[0]);
+  // Accompaniment may sit above a low melody, rather than disappearing below it.
+  const min=inst.range[0],max=inst.range[1];
+  const centers=[melody-12,melody+12,Math.round((min+max)/2)-6];
+  const candidateSets=[];
+  for(const center of centers){
+    const pitches=[];
+    for(const pc of chord){
+      const possible=[];
+      for(let n=min;n<=max;n++)if(n%12===pc)possible.push(n);
+      if(possible.length)pitches.push(possible.reduce((a,b)=>Math.abs(a-center)<Math.abs(b-center)?a:b));
+    }
+    if(pitches.length===chord.size){
+      const unique=[...new Set(pitches)].sort((a,b)=>a-b);
+      if(unique.length===chord.size)candidateSets.push(unique);
+    }
   }
-  return out.slice(0,3);
+  if(!candidateSets.length)return [];
+  return candidateSets.sort((a,b)=>{
+    const penalty=arr=>arr.reduce((v,n)=>v+Math.max(0,8-Math.abs(n-melody))*2,0)
+      +Math.max(0,arr[arr.length-1]-arr[0]-16);
+    return penalty(a)-penalty(b);
+  })[0];
+}
+function setAccompanimentPreset(inst){
+  // Channel 1 is reserved for accompaniment; channel 0 stays with the melody.
+  synth.controllerChange(1,0,inst.bank);
+  synth.controllerChange(1,32,0);
+  synth.programChange(1,inst.program);
+  synth.controllerChange(1,7,Math.round(Number(el.instrumentVolume.value)*0.72));
 }
 function generateMelody(){
   let inst=chooseInstrument();
   const accompanied=el.melodyComposition?.value==='accompanied';
-  if(accompanied&&!(chordEligible(inst)&&inst.family==='poly')){
-    const pool=selectedInstrumentPool().filter(x=>chordEligible(x)&&x.family==='poly');
-    if(!pool.length)throw new Error('伴奏ありには和音を演奏できる楽器を選択してください');
-    inst=pick(pool);
-  }
   const [fullLow,fullHigh]=getRangeForMelody(inst);
   const setting=Number(el.melodyCount.value);
   const count=setting===-1?3+Math.floor(Math.random()*30):setting===0?3+Math.floor(Math.random()*6):setting;
@@ -298,13 +334,15 @@ async function runMelody(token){
     setSequenceDisplay(`${D.NAMES[m.key]} / ${m.scaleName}`,m.notes,i,m.inst,`メロディ再生中 ${i+1}/${m.notes.length}${label}`);
     const slotMs=rhythm?rhythm.beats*beatMs:null;
     const soundMs=slotMs?Math.max(35,slotMs*rhythm.articulation):durationSec*1000;
-    if(m.accompanied&&(i===0||rhythm?.beatPosition===0)){
-      for(const n of accompaniment)noteOff(n);
+    if(m.accompanied&&(i===0||(rhythm?rhythm.beatPosition===0:i%4===0))){
+      for(const n of accompaniment)synth.noteOff(1,n);
       accompaniment=[];
-      if(chordEligible(m.inst)){
-        accompaniment=accompanimentNotes(m.harmony?.[i],m.notes[i],m.inst);
-        selectPreset(m.inst);
-        for(const n of accompaniment)noteOn(n);
+      if(m.harmony?.[i]){
+        accompaniment=accompanimentNotes(m.harmony[i],m.notes[i],m.inst);
+        if(accompaniment.length){
+          setAccompanimentPreset(m.inst);
+          for(const n of accompaniment)synth.noteOn(1,n,62);
+        }
       }
     }
     await playSingleFor(m.inst,m.notes[i],soundMs,token);
@@ -314,7 +352,7 @@ async function runMelody(token){
       await sleep(gap);
     }
   }
-  }finally{for(const n of accompaniment)noteOff(n);}
+  }finally{for(const n of accompaniment)synth.noteOff(1,n);}
   if(token!==runToken)return;
   previousMelodyEnding=m.notes[m.notes.length-1];
   const keyLang=speechLang('4','key'),keyText=pitchText(m.key,keyLang),scale=(keyLang==='en-US'?D.SCALE_ENGLISH_NAMES:D.SCALE_JAPANESE_NAMES)[m.scaleName]||m.scaleName;
