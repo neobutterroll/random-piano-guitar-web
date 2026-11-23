@@ -34,6 +34,8 @@
   <section class="panel hidden" id="melodySettings">
     <h2>メロディモード設定</h2><p class="small">旋律・和声・リズムを組み合わせて生成します。音楽的なリズムではテンポと拍子が優先され、共通の「音の長さ」は使用しません。</p>
     <label>音の選び方<select id="melodySelection"><option value="0">完全ランダム</option><option value="1">音階内ランダム</option></select></label>
+    <label>生成の目的<select id="musicGoal"><option value="song">楽曲らしさ重視（構成・反復・終止）</option><option value="training">音感練習重視（変化・出題の多様性）</option></select></label>
+    <p class="small">楽曲らしさ重視ではAメロ・Bメロ・サビなどの構成を保ち、フレーズや楽器の役割を繰り返します。音感練習重視では反復を弱めて出題を多様にします。</p>
     <label>メロディ生成方式<select id="melodyComposition"><option value="melodic">自然な単旋律（音階・旋律中心）</option><option value="harmonic">コード進行に沿った旋律（伴奏なし）</option><option value="accompanied">コード進行に沿った旋律（伴奏あり）</option></select></label>
     <p class="small">コード進行方式は和声の流れに沿って旋律を作ります。伴奏ありでは独立したチャンネルで和音を鳴らします。演奏中の全小節のコード名・度数は下部の結果欄に表示されます。</p>
     <div class="grid two"><label>メロディ音量 <output id="melodyVolumeValue">80%</output><input id="melodyVolume" oninput="document.getElementById('melodyVolumeValue').value=this.value+'%'" type="range" min="0" max="100" step="1" value="80"></label><label>伴奏音量 <output id="accompanimentVolumeValue">85%</output><input id="accompanimentVolume" oninput="document.getElementById('accompanimentVolumeValue').value=this.value+'%'" type="range" min="0" max="100" step="1" value="85"></label></div>
@@ -53,18 +55,18 @@
       <p class="small">追加旋律は伴奏の有無に関係なく利用できます。追加伴奏は「伴奏あり」のときのみ鳴ります。音域外の音はその楽器では鳴らしません。</p>
     </div>
     <label>伴奏の演奏方法<select id="melodyAccompStyle"><option value="auto">自動（楽曲の展開に応じて変更）</option><option value="block">ブロックコード</option><option value="arpeggio">アルペジオ</option><option value="broken">分散和音</option><option value="bass">ベース＋和音</option></select></label>
-    <label>メロディの流れ<select id="melodyStyle"><option value="random">ランダム</option><option value="natural">音楽理論に沿った自然な流れ</option></select></label>
+    <label>メロディの流れ<select id="melodyStyle"><option value="natural" selected>音楽理論に沿った自然な流れ</option><option value="random">ランダム</option></select></label>
     <label>キーの設定<select id="melodyKeyMode"><option value="0">指定</option><option value="1">ランダム</option></select></label>
     <label>キー<select id="melodyKey"></select></label>
     <label>音階の設定<select id="melodyScaleMode"><option value="0">指定</option><option value="1">全分類からランダム</option><option value="2">選択した分類からランダム</option><option value="3">音楽的に変化（近い音階を優先）</option></select></label>
     <label>音階の分類<select id="melodyCategory"></select></label>
     <label>音階<select id="melodyScale"></select></label>
     <label>音数<select id="melodyCount"><option value="0">ランダム（3〜8音）</option><option value="-1">ランダム（3〜32音）</option><option value="3">3音</option><option value="4">4音</option><option value="5">5音</option><option value="6">6音</option><option value="7">7音</option><option value="8">8音</option><option value="9">9音</option><option value="10">10音</option><option value="11">11音</option><option value="12">12音</option><option value="13">13音</option><option value="14">14音</option><option value="15">15音</option><option value="16">16音</option><option value="17">17音</option><option value="18">18音</option><option value="19">19音</option><option value="20">20音</option><option value="21">21音</option><option value="22">22音</option><option value="23">23音</option><option value="24">24音</option><option value="25">25音</option><option value="26">26音</option><option value="27">27音</option><option value="28">28音</option><option value="29">29音</option><option value="30">30音</option><option value="31">31音</option><option value="32">32音</option></select></label>
-    <label>リズム<select id="melodyRhythm"><option value="even">従来どおり（等間隔）</option><option value="musical">音楽的なリズム（拍子設定に従う）</option></select></label>
+    <label>リズム<select id="melodyRhythm"><option value="musical" selected>音楽的なリズム（拍子設定に従う）</option><option value="even">従来どおり（等間隔）</option></select></label>
     <label>拍子<select id="melodyMeter"><option value="4/4">4/4拍子</option><option value="3/4">3/4拍子</option><option value="2/4">2/4拍子</option><option value="6/8">6/8拍子</option><option value="5/4">5/4拍子</option><option value="random">ランダム（16小節以上維持）</option></select></label>
     <p class="small">奏法・休符はフレーズに合わせて自動生成します。拍子のランダム選択は16小節ごとの区切りでのみ行います。伴奏はメロディと独立した音声チャンネルで演奏します。</p>
     <label>テンポ（BPM）<input id="melodyTempo" type="number" min="40" max="240" step="1" value="100"></label>
-    <label>前後のメロディのつながり<select id="melodyContinuity"><option value="off">従来どおり（独立）</option><option value="on">自然につなげる</option></select></label>
+    <label>前後のメロディのつながり<select id="melodyContinuity"><option value="on" selected>自然につなげる（推奨）</option><option value="off">問題ごとに独立</option></select></label>
     <p class="small">自然につなげる設定では、前のメロディの終音と次の開始音の距離を抑え、キーがランダムの場合も共通音や近い音域を優先します。リズムを有効にすると音の長さと間隔はテンポに合わせて変わります。</p>
   </section>
   <section class="panel">

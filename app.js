@@ -17,6 +17,12 @@ const instrumentById = new Map(INSTRUMENTS.map(x=>[x.id,x]));
 let audioContext=null, synth=null, soundLoaded=false, loadingPromise=null;
 let runToken=0, playing=false, endAt=0, durationSec=1, soundGapSec=0.5, questionGapSec=1;
 let activeTimers=new Set(), activeNotes=[], previousNote=-1, timerTicker=null, wakeLock=null, speechPrimePromise=Promise.resolve();
+let songMelodyMotifs=new Map(), songArrangementMotifs=new Map();
+const SONG_FORM=[{name:'イントロ',bars:4,energy:0.27},{name:'Aメロ',bars:16,energy:0.42},{name:'Bメロ',bars:8,energy:0.67},{name:'サビ',bars:16,energy:0.94},{name:'間奏',bars:8,energy:0.52},{name:'Aメロ',bars:8,energy:0.49},{name:'サビ',bars:16,energy:1},{name:'アウトロ',bars:8,energy:0.24}];
+const SONG_FORM_LENGTH=SONG_FORM.reduce((n,x)=>n+x.bars,0);
+function musicGoal(){return $('musicGoal')?.value||'song';}
+function songSectionAt(bar){let pos=((bar%SONG_FORM_LENGTH)+SONG_FORM_LENGTH)%SONG_FORM_LENGTH;for(const x of SONG_FORM){if(pos<x.bars)return {...x,offset:pos};pos-=x.bars;}return {...SONG_FORM[0],offset:0};}
+function musicalEnergy(bar){return musicGoal()==='training'?0.64:songSectionAt(bar).energy;}
 let previousMelodyEnding=null;let previousMusicalKey=null,previousMusicalScale=null,musicalKeyBlock=-1,musicalScaleBlock=-1; let songMeasure=0, songHarmony=null, songSection=0, songMotif=null;
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const sleep=ms=>new Promise(resolve=>{const id=setTimeout(()=>{activeTimers.delete(id);resolve();},Math.max(0,ms));activeTimers.add(id);});
@@ -119,6 +125,12 @@ function arrangeIndependentParts(m,i,beatMs,slotMs,token,leadLayers,backingLayer
  const note=m.notes[i],measure=rhythm?.measure??Math.floor(i/4);
  const beat=rhythm?.beatPosition??(i%4),section=rhythm?.section??0;
  const phraseEnd=!!rhythm?.phraseEnd;
+ const energy=musicalEnergy(measure),phrase=songSectionAt(measure);
+ const sparse=musicGoal()==='song'&&energy<0.5;
+ const phraseSlot=(measure%4)*4+Math.floor(beat);
+ const phraseMotif=phrase.name+':'+phraseSlot;
+ if(!songArrangementMotifs.has(phraseMotif))songArrangementMotifs.set(phraseMotif,Math.random());if(songArrangementMotifs.size>160)songArrangementMotifs.delete(songArrangementMotifs.keys().next().value);
+ const motifGate=songArrangementMotifs.get(phraseMotif);
  // The same phrase-level motif is reused with a small variation in the B section.
  const motif=(measure+Math.floor(beat))%4;
  for(const [id,inst] of leadLayers){
@@ -126,7 +138,7 @@ function arrangeIndependentParts(m,i,beatMs,slotMs,token,leadLayers,backingLayer
    // Sustained answer line: enters after the main melody on alternating beats,
    // leaving space on strong beats and at the beginning of phrases.
    const respond=(section===1?motif%3!==0:motif===1||motif===3)||phraseEnd;
-   if(!respond){clearArrangementChannel(ARRANGEMENT_CHANNELS[id]);continue;}
+   if(!respond||(sparse&&motifGate>0.46)){clearArrangementChannel(ARRANGEMENT_CHANNELS[id]);continue;}
    const target=note+(note>65?-12:12);
    const pitch=nearestChordTone(chord?.pcs,target,inst);
    if(pitch!==null)playArrangementEvent(id,inst,[pitch],54,Math.max(90,slotMs*.75),token,Math.min(slotMs*.25,beatMs*.25));
@@ -137,7 +149,7 @@ function arrangeIndependentParts(m,i,beatMs,slotMs,token,leadLayers,backingLayer
    const target=Math.round((note+next)/2)-5+(section===1?2:0);
    const pitch=nearestChordTone(chord?.pcs,target,inst);
    if(pitch===null)continue;
-   const entries=phraseEnd?[0]:motif%2===0?[.45]:[.15,.65];
+   const entries=phraseEnd?[0]:sparse?[.55]:motif%2===0?[.45]:[.15,.65];
    for(const fraction of entries){
     const delay=slotMs*fraction;
     const second=nearestChordTone(chord?.pcs,pitch+(fraction>.5?2:0),inst);
@@ -153,15 +165,15 @@ function arrangeIndependentParts(m,i,beatMs,slotMs,token,leadLayers,backingLayer
    // Bass plays roots on downbeats and occasional fifths on pickup beats.
    const root=nearestChordTone([chord.pcs[chord.inversion]??chord.root],Math.min(...notes)-12,inst);
    const fifth=nearestChordTone(chord.pcs,root+7,inst);
-   const bassNotes=section===1&&slotMs>beatMs*.8?[root,fifth]:[root];
+   const bassNotes=energy>0.75&&slotMs>beatMs*.8?[root,fifth]:[root];
    bassNotes.forEach((n,j)=>playArrangementEvent(id,inst,[n],65,Math.max(85,Math.min(beatMs*.78,slotMs/bassNotes.length*.8)),token,j*slotMs/bassNotes.length));
   }else{
    // A separate broken-chord / syncopated pad rhythm; no unison doubling.
    const ordered=[...notes].sort((a,b)=>a-b);
-   const offsets=section===1?[0,.33,.7]:motif%2===0?[0,.5]:[.25,.75];
+   const offsets=sparse?[0]:energy>0.75?[0,.33,.7]:motif%2===0?[0,.5]:[.25,.75];
    offsets.forEach((f,j)=>{
     const pitch=ordered[(j+motif)%ordered.length];
-    playArrangementEvent(id,inst,[pitch],45,Math.max(75,Math.min(beatMs*.42,slotMs*(1-f)*.7)),token,slotMs*f);
+    playArrangementEvent(id,inst,[pitch],Math.round(38+energy*15),Math.max(75,Math.min(beatMs*.42,slotMs*(1-f)*.7)),token,slotMs*f);
    });
   }
  }
@@ -178,7 +190,8 @@ function applyMelodyExpression(){
  synth.controllerChange(1,11,Math.round(mixLevel('accompanimentVolume')*1.27));updateArrangementVolumes();
 }
 function updateMelodyMix(){applyMelodyExpression();}
-function melodyVelocity(){return 100;}
+let currentMelodyEnergy=0.65;
+function melodyVelocity(){return Math.max(48,Math.min(115,Math.round(68+currentMelodyEnergy*39+(Math.random()-.5)*5)));}
 function accompanimentVelocity(base){return Math.max(1,Math.min(127,base));}
 for(const [id,label] of [['melodyVolume','melodyVolumeValue'],['accompanimentVolume','accompanimentVolumeValue']]){
  const slider=$(id),output=$(label);
@@ -293,7 +306,7 @@ const METER_GROUPS={'4/4':[2,2],'3/4':[3],'2/4':[2],'6/8':[1.5,1.5],'5/4':[3,2]}
 function meterAtBar(bar){
   const mode=el.melodyMeter?.value||'4/4';
   if(mode!=='random'){songMeter=mode;songMeterBlock=Math.floor(bar/16);return mode;}
-  const block=Math.floor(bar/16);
+  const block=Math.floor(bar/(musicGoal()==='song'?SONG_FORM_LENGTH:16));
   if(block!==songMeterBlock){songMeterBlock=block;songMeter=pick(['4/4','4/4','3/4','6/8','2/4','5/4']);}
   return songMeter;
 }
@@ -327,7 +340,7 @@ function melodicRhythm(count){
   // Complete a bar before beginning the next question: songMeasure is a bar cursor.
   while(result.length<count){
     const meter=meterAtBar(bar),total=METER_BEATS[meter];
-    const section=Math.floor(bar/8)%3===1?1:0;
+    const section=musicalEnergy(bar)>=0.65?1:0;
     if(idx>=pattern.length){pattern=rhythmPattern(meter,section,bar%4);idx=0;position=0;}
     const beats=pattern[idx++];
     const endOfBar=position+beats>=total-1e-6;
@@ -470,7 +483,8 @@ function chooseSongProgression(majorLike,minorLike,previous,lastChord,key,degree
    phraseScore*=Math.pow(Math.max(0.1,Math.min(8,transition)),0.16/Math.max(1,entries.length-1));
   }
   const endRole=harmonicRole(entries.at(-1),key);
-  if(endRole==='tonic')phraseScore*=1.16;
+  if(endRole==='tonic')phraseScore*=context?.cadence?2.0:1.16;
+  if(context?.halfCadence&&endRole==='dominant')phraseScore*=1.65;
   return w*phraseScore*harmonicTransitionScore(lastChord,first,key,context);
  });
 }
@@ -534,13 +548,13 @@ function melodyHarmony(scale,key,count,rhythm){
   const change=finished||branch||phraseComplete;
   if(change){
    const prior=h.progression;
-   h.progression=chooseSongProgression(majorLike,minorLike,prior,h.lastChord,key,degrees,h.genre,h.mood??0,{melodyPitch:previousMelodyEnding,cadence:measure%4===0});
+   h.progression=chooseSongProgression(majorLike,minorLike,prior,h.lastChord,key,degrees,h.genre,h.mood??0,{melodyPitch:previousMelodyEnding,cadence:measure%4===0&&!['Bメロ'].includes(songSectionAt(measure).name),halfCadence:measure%4===0&&songSectionAt(measure).name==='Bメロ'});
    h.progressionIndex=0;h.groupId++;h.phraseChordCount=0;
    if(h.mood===null)h.mood=progressionMood(h.progression,key,degrees);
    const newLength=h.progression.chords?.length||h.progression.degrees.length;
    // Weights: 2 chords 20%, 3 chords 35%, 4 chords 30%, full phrase 15%.
    const choice=weightedChoice([{n:2,w:20},{n:3,w:35},{n:4,w:30},{n:newLength,w:15}],x=>x.w);
-   h.phraseTarget=Math.min(newLength,choice.n);
+   h.phraseTarget=Math.min(newLength,musicGoal()==='song'&&musicalEnergy(measure)<0.55?Math.max(3,choice.n):choice.n);
   }
   const prog=h.progression,idx=h.progressionIndex++;h.phraseChordCount++;
   const info=progressionEntries(prog,key,degrees)[idx];
@@ -618,7 +632,7 @@ function musicalScaleDistance(a,b){
   return common/Math.max(1,Math.max(aa.size,bb.size));
 }
 function chooseMusicalScale(all){
-  const block=Math.floor(songMeasure/16);
+  const block=Math.floor(songMeasure/(musicGoal()==='song'?SONG_FORM_LENGTH:16));
   if(previousMusicalScale&&musicalScaleBlock===block&&all.includes(previousMusicalScale))return previousMusicalScale;
   musicalScaleBlock=block;
   const candidates=all.filter(x=>Array.isArray(D.SCALES[x])&&D.SCALES[x].length>=5);
@@ -634,7 +648,7 @@ function chooseMusicalScale(all){
   });
 }
 function chooseMusicalKey(scaleName){
-  const block=Math.floor(songMeasure/16);
+  const block=Math.floor(songMeasure/(musicGoal()==='song'?SONG_FORM_LENGTH:16));
   if(previousMusicalKey!==null&&musicalKeyBlock===block)return previousMusicalKey;
   musicalKeyBlock=block;
   if(previousMusicalKey===null)return Math.floor(Math.random()*12);
@@ -718,12 +732,45 @@ function displayMelodyQuestion(m){
 function updateMelodyQuestion(m,i,label){
  const notes=el.answer.querySelectorAll('.sequence-notes .melody-note, .sequence-notes .active-melody-note');
  notes.forEach((node,j)=>node.className=j===i?'active-melody-note':'melody-note');
- el.status.textContent=`メロディ再生中 ${i+1}/${m.notes.length}${label}`;
+ const sec=m.rhythm?.[i]?songSectionAt(m.rhythm[i].measure):null;
+ el.status.textContent=`${sec&&musicGoal()==='song'?sec.name+' / ':''}メロディ再生中 ${i+1}/${m.notes.length}${label}`;
  if(m.harmony)displayMelodyChords(m,i);
 }
 function accompanimentStyle(section){
   const mode=el.melodyAccompStyle?.value||'auto';
   return mode==='auto'?(section===1?'arpeggio':'block'):mode;
+}
+// Motifs are anchored to 4-bar phrases, not to question boundaries.
+// A melody question is a window into a continuing song.
+function melodicPhrasePlan(rhythm,scaleName,key){
+ if(!rhythm)return null;
+ const out=[];
+ for(const r of rhythm){
+  const bar=r.measure,phrase=Math.floor(bar/4),section=songSectionAt(bar);
+  const identity=musicGoal()==='song'?(section.name==='サビ'?'chorus':section.name==='Aメロ'?'verse':section.name==='Bメロ'?'bridge':section.name):'practice-'+phrase;
+  const motifKey=identity+':'+(bar%4);
+  let motif=songMelodyMotifs.get(motifKey);
+  if(!motif){
+   const contour=[0,2,4,2,0,-1,1,0];
+   motif=contour.map((v,i)=>v+(Math.random()<.15?(Math.random()<.5?-1:1):0));
+   songMelodyMotifs.set(motifKey,motif);if(songMelodyMotifs.size>120) songMelodyMotifs.delete(songMelodyMotifs.keys().next().value);
+  }
+  const localIndex=Math.max(0,Math.round(r.beatPosition*2));
+  const motifOffset=motif[localIndex%motif.length];
+  const phraseEnd=r.phraseEnd;
+  out.push({motifOffset,phraseEnd,section,energy:musicalEnergy(bar),variation:musicGoal()==='training'?0.4:0.08});
+ }
+ return out;
+}
+function cadenceWeight(note,key,chord,r,phrasePlan){
+ if(!r)return 1;
+ const barEnd=r.phraseEnd,section=phrasePlan?.section;
+ if(!barEnd)return 1;
+ const relative=(note-key+120)%12;
+ const tonic=relative===0,third=relative===3||relative===4,fifth=relative===7;
+ const isHalf=section?.name==='Bメロ'||(section?.name==='Aメロ'&&Math.floor(r.measure/4)%2===0);
+ if(isHalf)return relative===7?4:chord?.notes?.has(note%12)?1.5:0.65;
+ return tonic?5:third?2.5:fifth?1.8:0.45;
 }
 function generateMelody(){
   let inst=arrangementInstrument('leadInstrument')||chooseInstrument();
@@ -760,6 +807,7 @@ function generateMelody(){
   const rhythm=el.melodyRhythm?.value==='musical'?melodicRhythm(count):null;
   const harmony=harmonic?melodyHarmony(scaleName,key,count,rhythm):null;
   const notes=[];
+  const phrasePlan=melodicPhrasePlan(rhythm,scaleName,key);
   let previous=continuity?previousMelodyEnding:anchor;
   for(let i=0;i<count;i++){
     let choices=candidates;
@@ -769,24 +817,28 @@ function generateMelody(){
       if(near.length)choices=near;
     }
     // End a phrase on stable degrees when available, but do not force large jumps.
-    const isEnd=i===count-1||((i+1)%8===0);
+    const isEnd=!!rhythm?.[i]?.phraseEnd||(!rhythm&&i===count-1);
     const chosen=(natural||continuity||harmonic)?weightedChoice(choices,n=>{
       const delta=Math.abs(n-previous);
       const stable=[0,4,7].includes((n-key+120)%12);
       const step=delta<=2?3:delta<=4?1.8:0.65;
       const close=1/(1+delta*0.45);
       const repeat=n===previous?0.3:1;
+      const plan=phrasePlan?.[i];
+      const motifTarget=anchor+(plan?.motifOffset||0);
+      const motifWeight=plan?Math.exp(-Math.abs(n-motifTarget)*(musicGoal()==='song'?0.24:0.07)):1;
+      const expressiveRange=plan?.energy>0.8?1.15:1;
       const chord=harmony?.[i]?.notes;
       const strong=rhythm?rhythm[i].beatPosition<0.01||Math.abs(rhythm[i].beatPosition-2)<0.01:i%4===0;
       const chordWeight=chord?(chord.has(n%12)?(strong?7:3):
         [...chord].some(pc=>pitchDistance(pc,n%12)<=2)?(strong?0.48:1.35):(strong?0.13:0.45)):1;
-      return step*close*repeat*(isEnd&&stable?1.7:1)*chordWeight;
+      return step*close*repeat*(isEnd&&stable?1.7:1)*chordWeight*motifWeight*cadenceWeight(n,key,harmony?.[i],rhythm?.[i],plan)*expressiveRange;
     }):pick(choices);
     notes.push(chosen);previous=chosen;
   }
   const chordInfos=harmony?harmony.map((chord,i)=>chordInfo(chord,key,scaleName,rhythm?.[i]?.measure??Math.floor(i/4))):null;
   const progressionName=harmony?.[0]?.progressionName||'自動生成';
-  return {inst,notes,key,scaleName,rhythm,harmony,accompanied,chordInfos,progressionName};
+  return {inst,notes,key,scaleName,rhythm,harmony,accompanied,chordInfos,progressionName,phrasePlan};
 }
 
 const EXTENDED_PROGRESSION_LIBRARY=[
@@ -866,6 +918,7 @@ async function runMelody(token){
     const rhythm=m.rhythm?.[i];
     const label=rhythm?` / ${Number(rhythm.beats.toFixed(3))}拍${rhythm.rest?' ＋休符'+rhythm.rest+'拍':''}`:'';
     updateMelodyQuestion(m,i,label);
+    currentMelodyEnergy=musicalEnergy(rhythm?.measure??Math.floor(i/4));
     const slotMs=rhythm?rhythm.beats*beatMs:null;
     const soundMs=slotMs?Math.max(35,slotMs*rhythm.articulation):durationSec*1000;
     if(m.accompanied&&(i===0||(m.harmony?.[i]?.harmonicStep!==m.harmony?.[i-1]?.harmonicStep))){
@@ -887,7 +940,7 @@ async function runMelody(token){
             for(let j=0;j<notes.length;j++){
               const n=notes[j];
               if(j===0)synth.noteOn(1,n,62);
-              else setTimeout(()=>{if(token===runToken)synth.noteOn(1,n,57);},j*delay);
+              else arrangementEvent(j*delay,token,()=>synth.noteOn(1,n,57));
             }
           }
         }
@@ -946,7 +999,7 @@ async function runProgression(token){
 }
 async function sessionLoop(token){while(playing&&token===runToken&&Date.now()<endAt){switch(el.mode.value){case'0':await runSingle(token);break;case'1':await runChord(token);break;case'2':await runInterval(token);break;case'3':await runProgression(token);break;case'4':await runMelody(token);break;}}if(token===runToken&&playing)stopSession('時間終了');}
 function validateSettings(){const minutes=Number(el.minutes.value),duration=Number(el.duration.value),soundGap=Number(el.soundGap.value),questionGap=Number(el.questionGap.value);if(!Number.isFinite(minutes)||minutes<0.1||minutes>600)throw new Error('再生時間は0.1〜600分で指定してください');if(!Number.isFinite(duration)||duration<=0)throw new Error('音の長さは0秒より大きくしてください');if(!Number.isFinite(Number(el.octaveGap.value))||Number(el.octaveGap.value)<0)throw new Error('音名とオクターブ番号の間隔は0秒以上にしてください');if(!Number.isFinite(soundGap)||soundGap<0||!Number.isFinite(questionGap)||questionGap<0)throw new Error('間隔は0秒以上で指定してください');if(!selectedInstrumentPool().some(x=>{try{getSelectedRange(x);return true;}catch(_){return false;}}))throw new Error('選択した音域に対応する楽器がありません');if(['1','3'].includes(el.mode.value)&&!selectedInstrumentPool().some(x=>{try{const [a,b]=getSelectedRange(x);return chordEligible(x)&&b-a>=12;}catch(_){return false;}}))throw new Error('コード演奏に対応した楽器を選択してください');if(el.mode.value==='4'&&!selectedInstrumentPool().some(x=>{try{getRangeForMelody(x);return true;}catch(_){return false;}}))throw new Error('選択した楽器とメロディ音域が一致しません');if(el.mode.value==='3'&&el.progressionKeyMode.value==='1')parseKeyText(el.progressionKey.value);if(el.mode.value==='4'&&el.melodyRhythm?.value==='musical'&&(!Number.isFinite(Number(el.melodyTempo.value))||Number(el.melodyTempo.value)<40||Number(el.melodyTempo.value)>240))throw new Error('テンポは40〜240 BPMで指定してください');durationSec=duration;soundGapSec=soundGap;questionGapSec=questionGap;return minutes;}
-async function startSession(){if(playing||!soundLoaded)return;configureIOSAudio();if(el.speech.value==='on')primeSpeech();let minutes;try{minutes=validateSettings();}catch(e){el.status.textContent=e.message;return;}requestWakeLock();el.start.disabled=true;el.stop.disabled=true;try{await audioContext.resume();if(el.speech.value==='on')await speechPrimePromise;playing=true;runToken++;const token=runToken;endAt=Date.now()+minutes*60000;previousNote=-1;previousMelodyEnding=null;songHarmony=null;el.stop.disabled=false;el.status.textContent='トレーニング中';timerTicker=setInterval(updateTimer,250);updateTimer();sessionLoop(token).catch(e=>{if(token===runToken)stopSession('再生エラー：'+e.message);});}catch(e){el.status.textContent='再生準備エラー：'+e.message;el.start.disabled=false;el.stop.disabled=true;releaseWakeLock();}}
+async function startSession(){if(playing||!soundLoaded)return;configureIOSAudio();if(el.speech.value==='on')primeSpeech();let minutes;try{minutes=validateSettings();}catch(e){el.status.textContent=e.message;return;}requestWakeLock();el.start.disabled=true;el.stop.disabled=true;try{await audioContext.resume();if(el.speech.value==='on')await speechPrimePromise;playing=true;runToken++;const token=runToken;endAt=Date.now()+minutes*60000;previousNote=-1;previousMelodyEnding=null;songHarmony=null;songMeasure=0;songRhythmCarry=null;songMotif=null;songMelodyMotifs.clear();songArrangementMotifs.clear();el.stop.disabled=false;el.status.textContent='トレーニング中';timerTicker=setInterval(updateTimer,250);updateTimer();sessionLoop(token).catch(e=>{if(token===runToken)stopSession('再生エラー：'+e.message);});}catch(e){el.status.textContent='再生準備エラー：'+e.message;el.start.disabled=false;el.stop.disabled=true;releaseWakeLock();}}
 function stopSession(reason='停止しました'){if(!playing&&el.start.disabled===false)return;playing=false;runToken++;clearTimers();releaseWakeLock();if(timerTicker){clearInterval(timerTicker);timerTicker=null;}stopAllNotes();clearArrangement();try{speechSynthesis.cancel();}catch(_){}try{audioContext?.suspend();}catch(_){}el.start.disabled=!soundLoaded;el.stop.disabled=true;el.status.textContent=reason;el.remaining.textContent='残り時間：00:00';if(reason==='時間終了')el.answer.textContent='終了';}
 
 el.instrument.addEventListener('change',()=>{updateSettingsVisibility();updateInstrumentRange();});el.mode.addEventListener('change',updateSettingsVisibility);el.range.addEventListener('change',updateSettingsVisibility);el.melodyKeyMode.addEventListener('change',updateSettingsVisibility);el.melodyScaleMode.addEventListener('change',updateSettingsVisibility);el.melodyCategory.addEventListener('change',updateMelodyScales);el.progressionKeyMode.addEventListener('change',updateSettingsVisibility);for(const [id,output] of [['instrumentVolume','instrumentVolumeValue'],['speechVolume','speechVolumeValue']])el[id].addEventListener('input',()=>$(output).textContent=el[id].value+'%');el.speed.addEventListener('input',()=>el.speedValue.textContent=Number(el.speed.value).toFixed(1));el.start.addEventListener('click',startSession);el.stop.addEventListener('click',()=>stopSession('停止しました'));
