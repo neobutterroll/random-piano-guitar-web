@@ -22,8 +22,8 @@ let songMelodyMotifs=new Map(), songArrangementMotifs=new Map();
 let songPhraseThemes=new Map(), songBassMemory=new Map();
 let accompanimentVoicing=null, arrangementVoicing=new Map(), songInstrumentation=new Map();
 let arrangementMotifPatterns=new Map(), lastSongCycle=-1, pendingSongTransition=false;
-function songCycleAt(bar){return Math.floor(Math.max(0,bar)/SONG_FORM_LENGTH);}
-function newSongBoundary(bar){return bar>0&&bar%SONG_FORM_LENGTH===0;}
+function songCycleAt(bar){return track14?.id??Math.floor(Math.max(0,bar)/SONG_FORM_LENGTH);}
+function newSongBoundary(bar){return track14?bar===track14.end:bar>0&&bar%SONG_FORM_LENGTH===0;}
 function songEnding(bar){const section=songSectionAt(bar);return section.name==='アウトロ'&&section.offset>=section.bars-2;}
 function songPartEnabled(id,bar){
  if(musicGoal()!=='song')return true;
@@ -134,6 +134,21 @@ function phraseMotionTarget(r,key,anchor){
 
 const SONG_FORM=[{name:'イントロ',bars:4,energy:0.27},{name:'Aメロ',bars:16,energy:0.42},{name:'Bメロ',bars:8,energy:0.67},{name:'サビ',bars:16,energy:0.94},{name:'間奏',bars:8,energy:0.52},{name:'Aメロ',bars:8,energy:0.49},{name:'サビ',bars:16,energy:1},{name:'アウトロ',bars:8,energy:0.24}];
 const SONG_FORM_LENGTH=SONG_FORM.reduce((n,x)=>n+x.bars,0);
+let track14=null, serial14=0;
+function design14(start){
+ const person=pick(SONG_PERSONALITIES.filter(p=>p!==track14?.person));
+ const mode=el.melodyMeter?.value||'4/4';
+ const meter=mode==='random'?pick(['4/4','3/4','6/8','2/4','5/4'].filter(x=>x!==track14?.meter)):mode;
+ const bpm=Math.max(40,Math.min(240,(Number(el.melodyTempo?.value)||100)*person.tempo*(.9+Math.random()*.2)));
+ const unit=4*METER_BEATS[meter]*60/bpm, target=120+Math.random()*180;
+ const blocks=Math.max(Math.ceil(120/unit),Math.min(Math.floor(300/unit),Math.round(target/unit)));
+ const forms=[['イントロ','Aメロ','Bメロ','サビ','間奏','Aメロ','サビ','アウトロ'],['Aメロ','サビ','Aメロ','Bメロ','サビ','アウトロ'],['イントロ','Aメロ','Bメロ','サビ','間奏','Bメロ','サビ','アウトロ']];
+ const names=pick(forms).slice();while(names.length>blocks){let j=names.findIndex(x=>['イントロ','間奏','Bメロ'].includes(x));names.splice(j<0?1:j,1);}
+ const energy={'イントロ':.27,'Aメロ':.45,'Bメロ':.67,'サビ':.95,'間奏':.52,'アウトロ':.24};
+ const form=names.map(name=>({name,bars:4,energy:energy[name]}));
+ for(let i=form.length;i<blocks;i++)pick(form.filter(x=>x.name!=='アウトロ'&&x.name!=='イントロ')).bars+=4;
+ return {id:++serial14,start,end:start+blocks*4,form,person,meter,bpm,key:null,scale:null};
+}
 function musicGoal(){return $('musicGoal')?.value||'song';}
 // A personality belongs to a complete song, not to the entire training session.
 // Retain it for 1–2 full forms, then deliberately change several dimensions.
@@ -148,12 +163,12 @@ const SONG_PERSONALITIES=[
 let songPersonality=null,songPersonalityCycle=-1,songPersonalityNextCycle=0,songPersonalityGeneration=0;
 function personalityAt(bar){
  if(musicGoal()!=='song')return {name:'音感練習',genre:'J-POP',tempo:1,density:1,complexity:1,syncopation:.5,range:1,brightness:.5};
- const cycle=Math.floor(Math.max(0,bar)/SONG_FORM_LENGTH);
+ const cycle=songCycleAt(bar);
  if(!songPersonality||cycle>=songPersonalityNextCycle){
   const options=SONG_PERSONALITIES.filter(x=>x!==songPersonality);
-  songPersonality=pick(options.length?options:SONG_PERSONALITIES);
+  songPersonality=track14?.person??pick(options.length?options:SONG_PERSONALITIES);
   songPersonalityGeneration++;
-  songPersonalityNextCycle=cycle+(Math.random()<.7?1:2);
+  songPersonalityNextCycle=cycle+1;
   songPhraseThemes.clear();songMelodyMotifs.clear();songBassContour.clear();songArrangementMotifs.clear();songGrooveMemory.clear();songBassMemory.clear();arrangementMotifPatterns.clear();arrangementVoicing.clear();accompanimentVoicing=null;
   songHarmony=null;songMotif=null;previousMelodyEnding=null;
   musicalKeyBlock=-1;musicalScaleBlock=-1;
@@ -162,7 +177,7 @@ function personalityAt(bar){
  return songPersonality;
 }
 
-function songSectionAt(bar){let pos=((bar%SONG_FORM_LENGTH)+SONG_FORM_LENGTH)%SONG_FORM_LENGTH;for(const x of SONG_FORM){if(pos<x.bars)return {...x,offset:pos};pos-=x.bars;}return {...SONG_FORM[0],offset:0};}
+function songSectionAt(bar){let pos=track14?Math.max(0,Math.min(track14.end-track14.start-1,bar-track14.start)):((bar%SONG_FORM_LENGTH)+SONG_FORM_LENGTH)%SONG_FORM_LENGTH;for(const x of (track14?.form??SONG_FORM)){if(pos<x.bars)return {...x,offset:pos};pos-=x.bars;}return {...SONG_FORM[0],offset:0};}
 function musicalEnergy(bar){return musicGoal()==='training'?0.64:Math.min(1,songSectionAt(bar).energy*(.85+.16*personalityAt(bar).density));}
 // Shared song-level phrasing plan: stable within each section, renewed on the next cycle.
 const SONG_GROOVES={
@@ -268,7 +283,7 @@ async function fetchWithProgress(url){
   }
   const out=new Uint8Array(loaded);let offset=0;for(const c of chunks){out.set(c,offset);offset+=c.length;}return out.buffer;
 }
-async function loadSoundBank(){if(loadingPromise)return loadingPromise;loadingPromise=(async()=>{setLoadProgress(1,'音源の読み込みを準備中…');const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)throw new Error('このブラウザはWeb Audio APIに対応していません');audioContext=new Ctx({latencyHint:'interactive'});const workletURL='https://cdn.jsdelivr.net/npm/spessasynth_lib@4.4.0/dist/spessasynth_processor.min.js';setLoadProgress(3,'音源エンジンを準備中…');await audioContext.audioWorklet.addModule(workletURL);synth=new WorkletSynthesizer(audioContext);synth.connect(audioContext.destination);await synth.isReady;const compressed=await fetchWithProgress('./assets/GeneralUser-GS.sf2.gz');setLoadProgress(78,'SoundFontを展開中…');if(!('DecompressionStream'in window))throw new Error('このブラウザはgzip展開に対応していません');const stream=new Blob([compressed]).stream().pipeThrough(new DecompressionStream('gzip'));const bank=await new Response(stream).arrayBuffer();setLoadProgress(86,'261プリセットを含むSoundFontを登録中…');await synth.soundBankManager.addSoundBank(bank,'GeneralUser-GS');try{synth.controllerChange(0,0,0);synth.controllerChange(0,32,0);synth.programChange(0,0);}catch(_){}setLoadProgress(100,'音源：GeneralUser GS 読み込み完了');soundLoaded=true;el.start.disabled=false;setTimeout(()=>document.querySelector('.loading-area')?.classList.add('hidden'),1200);return true;})();return loadingPromise;}
+async function loadSoundBank(){if(loadingPromise)return loadingPromise;loadingPromise=(async()=>{setLoadProgress(1,'音源の読み込みを準備中…');const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)throw new Error('このブラウザはWeb Audio APIに対応していません');audioContext=new Ctx({latencyHint:'interactive'});const workletURL='https://cdn.jsdelivr.net/npm/spessasynth_lib@4.4.0/dist/spessasynth_processor.min.js';setLoadProgress(3,'音源エンジンを準備中…');await audioContext.audioWorklet.addModule(workletURL);synth=new WorkletSynthesizer(audioContext);mixAnalyser=audioContext.createAnalyser();mixAnalyser.fftSize=2048;mixSamples=new Float32Array(2048);mixGain=audioContext.createGain();synth.connect(mixAnalyser);mixAnalyser.connect(mixGain);mixGain.connect(audioContext.destination);await synth.isReady;setupChannelMetersV11();const compressed=await fetchWithProgress('./assets/GeneralUser-GS.sf2.gz');setLoadProgress(78,'SoundFontを展開中…');if(!('DecompressionStream'in window))throw new Error('このブラウザはgzip展開に対応していません');const stream=new Blob([compressed]).stream().pipeThrough(new DecompressionStream('gzip'));const bank=await new Response(stream).arrayBuffer();setLoadProgress(86,'261プリセットを含むSoundFontを登録中…');await synth.soundBankManager.addSoundBank(bank,'GeneralUser-GS');try{synth.controllerChange(0,0,0);synth.controllerChange(0,32,0);synth.programChange(0,0);}catch(_){}setLoadProgress(100,'音源：GeneralUser GS 読み込み完了');soundLoaded=true;el.start.disabled=false;setTimeout(()=>document.querySelector('.loading-area')?.classList.add('hidden'),1200);return true;})();return loadingPromise;}
 // Multi-part arrangement: one MIDI channel per independently selected instrument.
 const ARRANGEMENT_CHANNELS={leadLayer1:2,leadLayer2:3,backingLayer1:4,backingLayer2:5};
 const arrangementActive=new Map();
@@ -403,7 +418,7 @@ function arrangeIndependentParts(m,i,beatMs,slotMs,token,leadLayers,backingLayer
   }
  }
 }
-function updateArrangementVolumes(){if(!synth)return;for(const [id,ch] of Object.entries(ARRANGEMENT_CHANNELS))synth.controllerChange(ch,11,Math.round(mixLevel(id.startsWith('lead')?'melodyVolume':'accompanimentVolume')*1.27));}
+function updateArrangementVolumes(){if(!synth)return;for(const [id,ch] of Object.entries(ARRANGEMENT_CHANNELS))synth.controllerChange(ch,11,expressionV11(ch,mixLevel(id.startsWith('lead')?'melodyVolume':'accompanimentVolume')));}
 function populateArrangementInstruments(){for(const id of ['leadInstrument','backingInstrument','leadLayer1','leadLayer2','backingLayer1','backingLayer2']){const select=$(id);if(!select)continue;const chordOnly=id.startsWith('backing');for(const inst of INSTRUMENTS){if(chordOnly&&!chordEligible(inst))continue;select.add(new Option(inst.name,inst.id));}}}
 function selectPreset(inst){if(!synth)throw new Error('音源エンジンが準備できていません');synth.controllerChange(0,0,inst.bank);synth.controllerChange(0,32,0);synth.programChange(0,inst.program);synth.controllerChange(0,7,110);try{if(el.mode.value==='4')synth.controllerChange(0,91,Math.round(18+songIdentity(playbackBar).room*90));}catch(_){}if(el.mode.value==='4')applyMelodyExpression();else synth.controllerChange(0,11,127);}
 function mixLevel(id){const n=Number(el[id]?.value);return Number.isFinite(n)?Math.max(0,Math.min(100,n)):80;}
@@ -411,8 +426,8 @@ function applyMelodyExpression(){
  if(!synth||el.mode.value!=='4')return;
  // MIDI expression CC11 persists for sustained notes, while note velocity
  // applies the chosen level to every newly started note.
- synth.controllerChange(0,11,Math.round(mixLevel('melodyVolume')*1.27));
- synth.controllerChange(1,11,Math.round(mixLevel('accompanimentVolume')*1.27));updateArrangementVolumes();
+ synth.controllerChange(0,11,expressionV11(0,mixLevel('melodyVolume')));
+ synth.controllerChange(1,11,expressionV11(1,mixLevel('accompanimentVolume')));updateArrangementVolumes();
 }
 function updateMelodyMix(){applyMelodyExpression();}
 let currentMelodyEnergy=0.65;
@@ -529,6 +544,7 @@ let songMeter='4/4', songMeterBlock=-1, songRhythmCarry=null;
 const METER_BEATS={'4/4':4,'3/4':3,'2/4':2,'6/8':3,'5/4':5};
 const METER_GROUPS={'4/4':[2,2],'3/4':[3],'2/4':[2],'6/8':[1.5,1.5],'5/4':[3,2]};
 function meterAtBar(bar){
+ if(track14)return track14.meter;
   const mode=el.melodyMeter?.value||'4/4';
   if(mode!=='random'){songMeter=mode;songMeterBlock=Math.floor(bar/16);return mode;}
   const block=Math.floor(bar/(musicGoal()==='song'?SONG_FORM_LENGTH:16));
@@ -563,7 +579,7 @@ function rhythmPattern(meter,section,phrasePosition){
 function melodicRhythm(count){
   const result=[];let bar=songRhythmCarry?.bar??songMeasure,position=songRhythmCarry?.position??0,pattern=songRhythmCarry?.pattern?.slice()??[],idx=songRhythmCarry?.idx??0;
   // Complete a bar before beginning the next question: songMeasure is a bar cursor.
-  while(result.length<count){
+  while(result.length<count&&(!track14||bar<track14.end)){
     const meter=meterAtBar(bar),total=METER_BEATS[meter];
     const section=(musicalEnergy(bar)*personalityAt(bar).density)>=0.65?1:0;
     if(idx>=pattern.length){pattern=rhythmPattern(meter,section,bar%4);idx=0;position=0;}
@@ -574,7 +590,7 @@ function melodicRhythm(count){
     let articulation=section===1?0.94:0.98;
     if(Math.random()<(section===1?0.045:0.015))articulation=0.58;
     if(phraseEnd)articulation=0.99;
-    const rest=phraseEnd&&Math.random()<0.3?0.5:((bar%8===3&&position>=total-1&&Math.random()<.12)?0.25:0);
+    const rest=track14?0:phraseEnd&&Math.random()<0.3?0.5:((bar%8===3&&position>=total-1&&Math.random()<.12)?0.25:0);
     result.push({beats,rest,articulation,phraseEnd,measure:bar,beatPosition:position,section,meter});
     position+=beats;
     if(endOfBar){bar++;idx=0;pattern=[];}
@@ -960,7 +976,7 @@ function updateMelodyQuestion(m,i,label){
  const notes=el.answer.querySelectorAll('.sequence-notes .melody-note, .sequence-notes .active-melody-note');
  notes.forEach((node,j)=>node.className=j===i?'active-melody-note':'melody-note');
  const sec=m.rhythm?.[i]?songSectionAt(m.rhythm[i].measure):null;
- el.status.textContent=`${sec&&musicGoal()==='song'?sec.name+'・'+personalityAt(m.rhythm[i].measure).name+' / ':''}メロディ再生中 ${i+1}/${m.notes.length}${label}`;
+ el.status.textContent=`${track14?`第${track14.id}曲 / ${Math.round(track14.bpm)} BPM / `:''}${sec&&musicGoal()==='song'?sec.name+'・'+personalityAt(m.rhythm[i].measure).name+' / ':''}メロディ再生中 ${i+1}/${m.notes.length}${label}`;
  if(m.harmony)displayMelodyChords(m,i);
 }
 function accompanimentStyle(section){
@@ -1102,9 +1118,197 @@ function auditArrangementPlan(m,plan){
  }
  return plan;
 }
+
+// V9: independent symbolic arrangement analysis and bounded local optimization.
+function analyzeArrangement(m,plan,beatMs,genre){
+ const weights=genre==='ジャズ'?{parallel:.35,dissonance:.65}:genre==='ロック'?{parallel:.2,dissonance:1.1}:{parallel:1,dissonance:1};
+ const scores={counterpoint:0,harmony:0,melody:0,rhythm:0,playability:0,balance:0,form:0};
+ const issues=[], timeline=[], previous=new Map(), pairs=new Map();
+ const add=(kind,cost,i,event=null)=>{scores[kind]+=cost;if(event&&cost>0)issues.push({kind,cost,i,event});};
+ let time=0;
+ for(let i=0;i<plan.length;i++){
+  const r=m.rhythm?.[i],slot=(r?.beats??1)*beatMs;
+  timeline.push({id:'main',n:m.notes[i],start:time,end:time+slot*(r?.articulation??.85),i});
+  for(const e of plan[i]){
+   for(const n of e.pitches){
+    if(!Number.isFinite(n)||n<e.inst.range[0]||n>e.inst.range[1])add('playability',20,i,e);
+    if(e.delayMs<0||e.holdMs<=0)add('rhythm',10,i,e);
+    const old=previous.get(e.id);
+    if(old!==undefined&&Math.abs(n-old)>12)add('playability',(Math.abs(n-old)-12)*.3,i,e);
+    previous.set(e.id,n);
+    const pcs=m.harmony?.[i]?.pcs;
+    if(pcs?.length&&!pcs.some(p=>((p-n)%12+12)%12===0)){
+     const next=plan[i+1]?.find(x=>x.id===e.id)?.pitches[0];
+     if(next===undefined||Math.abs(next-n)>2)add('harmony',1.3*weights.dissonance,i,e);
+    }
+    timeline.push({id:e.id,n,start:time+e.delayMs,end:time+e.delayMs+e.holdMs,i,e});
+   }
+   if(e.id.startsWith('lead')&&e.velocity>75)add('balance',(e.velocity-75)*.12,i,e);
+  }
+  if(i&&Math.abs(m.notes[i]-m.notes[i-1])>12)add('melody',2,i);
+  if(r?.phraseEnd&&m.harmony?.[i]?.notes&&!m.harmony[i].notes.has(m.notes[i]%12))add('melody',2,i);
+  const energy=songSectionAt(r?.measure??0).energy;
+  if(energy<.4&&plan[i].length>4)add('form',(plan[i].length-4)*.6,i);
+  time+=slot+(r?.rest??0)*beatMs;
+ }
+ timeline.sort((a,b)=>a.start-b.start);
+ let active=[];
+ for(const b of timeline){
+  active=active.filter(a=>a.end>b.start);
+  for(const a of active){
+   if(a.id===b.id)continue;
+   const overlap=Math.min(a.end,b.end)-b.start;
+   if(overlap<Math.min(45,beatMs*.1))continue;
+   const x=a.id<b.id?a:b,y=x===a?b:a;
+   const interval=Math.abs(x.n-y.n),pc=interval%12;
+   const target=b.e?b:a;
+   const factor=Math.min(1,overlap/(beatMs*.45));
+   if(interval<3)add('balance',2.8*factor,target.i,target.e);
+   if(interval<12&&Math.min(a.n,b.n)<48&&[1,2,3,4].includes(pc))add('balance',2*factor,target.i,target.e);
+   if([1,6,11].includes(pc))add('counterpoint',1.1*factor*weights.dissonance,target.i,target.e);
+   const key=x.id+'|'+y.id,old=pairs.get(key);
+   if(old&&old.i!==b.i){
+    const dx=x.n-old.x,dy=y.n-old.y;
+    if(dx&&dy&&Math.sign(dx)===Math.sign(dy)&&pc===old.pc&&(pc===0||pc===7))add('counterpoint',2.5*weights.parallel,target.i,target.e);
+    if((x.n-y.n)*(old.x-old.y)<0)add('counterpoint',.7,target.i,target.e);
+   }
+   pairs.set(key,{x:x.n,y:y.n,pc,i:b.i});
+  }
+  active.push(b);
+ }
+ return {penalty:Object.values(scores).reduce((a,b)=>a+b,0),scores,issues};
+}
+function optimizeArrangementV9(m,plan,beatMs,genre){
+ const initial=analyzeArrangement(m,plan,beatMs,genre);
+ let current=initial;
+ // Restrict the search to the worst events and accept only measurable improvements.
+ for(let pass=0;pass<2;pass++){
+  const targets=[...new Set(current.issues.sort((a,b)=>b.cost-a.cost).map(x=>x.event))].slice(0,10);
+  for(const e of targets){
+   if(e.pitches.length!==1)continue;
+   const original=e.pitches[0],i=plan.findIndex(row=>row.includes(e));
+   const pcs=m.harmony?.[i]?.pcs;
+   if(!pcs?.length)continue;
+   const options=[-12,-7,-5,-4,-3,-2,2,3,4,5,7,12].map(d=>original+d).filter(n=>n>=e.inst.range[0]&&n<=e.inst.range[1]&&pcs.some(p=>((p-n)%12+12)%12===0)).sort((a,b)=>Math.abs(a-original)-Math.abs(b-original)).slice(0,5);
+   let best=original,bestCost=current.penalty;
+   for(const n of options){
+    e.pitches[0]=n;
+    const trial=analyzeArrangement(m,plan,beatMs,genre);
+    const cost=trial.penalty+Math.abs(n-original)*.08;
+    if(cost<bestCost-.05){best=n;bestCost=cost;}
+   }
+   e.pitches[0]=best;
+   current=analyzeArrangement(m,plan,beatMs,genre);
+  }
+ }
+ return {before:initial.penalty,after:current.penalty,components:current.scores};
+}
+
+// V10: joint phrase search, explicit non-chord tone labels and measured output monitoring.
+let mixAnalyser=null, mixSamples=null, mixGain=null, mixPeak=0;
+function monitorMixV10(){
+ if(!mixAnalyser)return;
+ mixAnalyser.getFloatTimeDomainData(mixSamples);
+ let peak=0,sum=0;for(const x of mixSamples){peak=Math.max(peak,Math.abs(x));sum+=x*x;}
+ mixPeak=Math.max(peak,mixPeak*.92);
+ const rms=Math.sqrt(sum/mixSamples.length);
+ if(mixGain){const target=peak>.98?Math.max(.45,mixGain.gain.value*.85):rms<.3?Math.min(1,mixGain.gain.value+.015):mixGain.gain.value;mixGain.gain.setTargetAtTime(target,audioContext.currentTime,.08);}
+}
+function toneClassV10(m,i){
+ const n=m.notes[i],p=m.notes[i-1],q=m.notes[i+1],h=m.harmony?.[i],prev=m.harmony?.[i-1];
+ if(!h||h.notes.has(n%12))return 'chord';
+ const step=(a,b)=>Number.isFinite(a)&&Number.isFinite(b)&&Math.abs(a-b)>0&&Math.abs(a-b)<=2;
+ const resolves=q!==undefined&&h.notes.has(q%12)&&step(n,q);
+ if(p===n&&prev?.notes.has(n%12)&&resolves&&q<n)return 'rearticulated-suspension';
+ if(step(p,n)&&resolves&&Math.sign(n-p)===Math.sign(q-n))return 'passing';
+ if(step(p,n)&&resolves&&p===q)return 'neighbor';
+ if(q===n&&m.harmony?.[i+1]?.notes.has(n%12))return 'anticipation';
+ return 'unresolved';
+}
+function motifDistanceV10(a,b){
+ const k=Math.min(a.length,b.length);if(k<3)return 0;
+ let cost=0;for(let i=1;i<k;i++){cost+=Math.min(6,Math.abs((a[i].n-a[i-1].n)-(b[i].n-b[i-1].n)));cost+=Math.min(2,Math.abs(a[i].beats-b[i].beats));}return cost/(k-1);
+}
+function jointOptimizeV10(m,beatMs,backing){
+ const plan=m.arrangementPlan,base=[];let previous=null;
+ for(let i=0;i<m.notes.length;i++){
+ const h=m.harmony?.[i],r=m.rhythm?.[i];
+ const changed=i===0||h?.harmonicStep!==m.harmony?.[i-1]?.harmonicStep;
+ if(m.accompanied&&h&&changed)previous=enhancedVoicing(h,m.notes[i],backing,previous,r?.measure??0);
+ base.push(m.accompanied&&h&&previous?[...previous]:[]);
+ }
+ const genre=personalityAt(m.rhythm?.[0]?.measure??songMeasure).genre;
+ const original=m.notes.slice();
+ const score=()=>{
+ const full=plan.map((row,i)=>[...row,...(base[i].length?[{id:'basic',inst:backing,pitches:base[i],velocity:48,holdMs:(m.rhythm?.[i]?.beats??1)*beatMs,delayMs:0}]:[])]);
+ let cost=analyzeArrangement(m,full,beatMs,genre).penalty;
+ for(let i=0;i<m.notes.length;i++){if(toneClassV10(m,i)==='unresolved')cost+=m.rhythm?.[i]?.beatPosition===0?4:1.5;cost+=Math.abs(m.notes[i]-original[i])*.22;}
+ for(const t of m.themeTargets||[])cost+=t.weight*Math.abs(motifDistanceV10(t.ref,t.indices.map(i=>({n:m.notes[i],beats:m.rhythm[i].beats})))-.65);
+ return cost;
+ };
+ const before=score();let best=before;
+ const [lo,hi]=getRangeForMelody(m.inst);
+ // Search coherent blocks, retaining rhythm and harmony labels.
+ for(let start=0;start<m.notes.length;start+=8){
+ const end=Math.min(start+8,m.notes.length),saved=m.notes.slice(start,end),savedBase=base.slice(start,end).map(x=>x.slice());
+ let winner=saved.slice(),winnerBase=savedBase;
+ for(const direction of [-1,1,0]){
+ for(let i=start;i<end;i++){
+ const h=m.harmony?.[i];let n=saved[i-start];
+ if(h&&toneClassV10(m,i)==='unresolved'){
+ const opts=[n-2,n-1,n+1,n+2].filter(x=>x>=lo&&x<=hi&&h.notes.has(x%12));
+ if(opts.length)n=opts.sort((a,b)=>Math.abs(a-n-direction)-Math.abs(b-n-direction))[0];}
+ m.notes[i]=n;
+ base[i]=savedBase[i-start].map(x=>{const y=x+direction*12;return direction&&y>=backing.range[0]&&y<=backing.range[1]&&Math.abs(y-n)>Math.abs(x-n)?y:x;}).sort((a,b)=>a-b);
+ }
+ const value=score();if(value<best){best=value;winner=m.notes.slice(start,end);winnerBase=base.slice(start,end).map(x=>x.slice());}
+ m.notes.splice(start,end-start,...saved);for(let i=start;i<end;i++)base[i]=savedBase[i-start].slice();
+ }
+ m.notes.splice(start,end-start,...winner);for(let i=start;i<end;i++)base[i]=winnerBase[i-start];
+ }
+ m.basicPlan=base;m.jointScore={before,after:best,classes:m.notes.map((_,i)=>toneClassV10(m,i))};
+}
+function analyzeSongThemesV10(queue){
+ const bars=new Map();for(const m of queue)for(let i=0;i<m.notes.length;i++){const r=m.rhythm?.[i];if(!r)continue;const b=r.measure;if(!bars.has(b))bars.set(b,[]);bars.get(b).push({n:m.notes[i],beats:r.beats});}
+ const themes=new Map();for(const [b,notes] of bars){const sec=songSectionAt(b),key=sec.name+':'+sec.offset%4;if(themes.has(key)){const d=motifDistanceV10(themes.get(key),notes);for(const m of queue)if(m.rhythm?.[0]?.measure===b)m.themeDistance=d;}else themes.set(key,notes);}
+}
+
+// V11: phrase recurrence influences actual notes prior to arrangement generation.
+let recurrenceV11=new Map();
+function themeRewriteV11(m){
+ const groups=new Map();
+ for(let i=0;i<m.notes.length;i++){const r=m.rhythm?.[i];if(!r)continue;const sec=songSectionAt(r.measure);if(!['Aメロ','サビ','Bメロ'].includes(sec.name))continue;const key=sec.name+':'+sec.offset%4; if(!groups.has(key))groups.set(key,[]);groups.get(key).push(i);}
+ const [lo,hi]=getRangeForMelody(m.inst),scale=new Set(D.SCALES[m.scaleName].map(x=>(x+m.key)%12));
+ for(const [key,indices] of groups){
+ const row=indices.map(i=>({n:m.notes[i],beats:m.rhythm[i].beats}));
+ const ref=recurrenceV11.get(key);if(!ref){if(row.length>=3)recurrenceV11.set(key,row);continue;}if(row.length<3)continue;
+ const original=m.notes.slice(),distance=()=>motifDistanceV10(ref,indices.map(i=>({n:m.notes[i],beats:m.rhythm[i].beats})));
+ const weight=key.startsWith('サビ')?1.8:1.1;
+ const cost=()=>weight*Math.abs(distance()-.65)+indices.reduce((v,i)=>v+Math.abs(m.notes[i]-original[i])*.12+(toneClassV10(m,i)==='unresolved'?1.4:0)+(i&&Math.abs(m.notes[i]-m.notes[i-1])>9?2:0),0)/indices.length;
+ const before=distance();let best=cost(),winner=original.slice();
+ for(const strength of [.45,.75,1]){m.notes.splice(0,m.notes.length,...original);for(let j=1;j<indices.length;j++){const i=indices[j],k=Math.min(ref.length-1,Math.round(j*(ref.length-1)/(indices.length-1)));const target=m.notes[indices[0]]+ref[k].n-ref[0].n;const desired=original[i]+strength*(target-original[i]);let opts=[];for(let n=Math.max(lo,original[i]-7);n<=Math.min(hi,original[i]+7);n++)if(scale.has(n%12))opts.push(n);if(opts.length)m.notes[i]=opts.sort((a,b)=>Math.abs(a-desired)-Math.abs(b-desired))[0];}const c=cost();if(c<best){best=c;winner=m.notes.slice();}}
+ m.notes.splice(0,m.notes.length,...winner);m.themeRewrite={before,after:distance()};(m.themeTargets??=[]).push({indices:[...indices],ref,weight});
+ }
+}
+// Individual channel taps are analysis-only: never connect them to audible output.
+let channelMetersV11=[],mixTrimV11=Array(6).fill(1),mixTickV11=0;
+function setupChannelMetersV11(){
+ if(typeof synth.connectChannel!=='function')return;
+ for(let ch=0;ch<6;ch++){try{const node=audioContext.createAnalyser();node.fftSize=1024;node.smoothingTimeConstant=.75;synth.connectChannel(node,ch);channelMetersV11.push({ch,node,wave:new Float32Array(1024),fft:new Float32Array(512),rms:0,bands:[]});}catch(e){console.warn('Channel analysis unavailable',ch,e);}}
+}
+function expressionV11(ch,level){return Math.round(Math.max(0,Math.min(127,level*1.27*(musicGoal()==='song'?mixTrimV11[ch]??1:1))));}
+function monitorChannelsV11(){
+ if(!channelMetersV11.length)return;
+ for(const m of channelMetersV11){m.node.getFloatTimeDomainData(m.wave);m.node.getFloatFrequencyData(m.fft);let sum=0,peak=0;for(const x of m.wave){sum+=x*x;peak=Math.max(peak,Math.abs(x));}m.rms=.65*m.rms+.35*Math.sqrt(sum/m.wave.length);m.peak=peak;const edges=[0,160,400,1000,2500,6000,24000];m.bands=Array(6).fill(0);for(let i=0;i<m.fft.length;i++){const f=i*audioContext.sampleRate/1024;const b=edges.findIndex((x,j)=>j>0&&f<x)-1;if(b>=0&&Number.isFinite(m.fft[i]))m.bands[b]+=10**(m.fft[i]/10);} }
+ if(++mixTickV11%4)return;
+ const lead=channelMetersV11.find(m=>m.ch===0);if(!lead||lead.rms<.008)return;
+ for(const m of channelMetersV11){if(m.ch===0||m.rms<.004)continue;const a=lead.bands.reduce((x,y)=>x+y,0),b=m.bands.reduce((x,y)=>x+y,0);const overlap=a&&b?lead.bands.reduce((v,x,i)=>v+Math.min(x/a,m.bands[i]/b),0):0;const target=m.rms>lead.rms*(m.ch===1?.95:.8)&&overlap>.55?Math.max(.65,mixTrimV11[m.ch]-.035):Math.min(1,mixTrimV11[m.ch]+.012);mixTrimV11[m.ch]=target;}
+ applyMelodyExpression();
+}
+
 function prearrangeMelody(m,selection){
  const tempo=Math.max(40,Math.min(240,Number(el.melodyTempo?.value)||100));
- const beatMs=60000/(musicGoal()==='song'?Math.max(40,Math.min(240,tempo*personalityAt(m.rhythm?.[0]?.measure??songMeasure).tempo)):tempo);
+ const beatMs=track14?60000/track14.bpm:60000/(musicGoal()==='song'?Math.max(40,Math.min(240,tempo*personalityAt(m.rhythm?.[0]?.measure??songMeasure).tempo)):tempo);
  const plan=[];
  for(let i=0;i<m.notes.length;i++){
   const events=[];
@@ -1115,30 +1319,144 @@ function prearrangeMelody(m,selection){
  const before=scoreArrangementPlan(m,plan);
  auditArrangementPlan(m,plan);
  m.arrangementPlan=plan;
- m.arrangementScore={before,after:scoreArrangementPlan(m,plan)};
+ m.arrangementScore=musicGoal()==='song'?optimizeArrangementV9(m,plan,beatMs,personalityAt(m.rhythm?.[0]?.measure??songMeasure).genre):{before,after:scoreArrangementPlan(m,plan)};
+ if(musicGoal()==='song')jointOptimizeV10(m,beatMs,selection.backing||m.inst);
  return m;
+}
+
+// V12: song-wide themes, independent of training-question boundaries.
+function rebuildLongThemesV12(queue){
+ const bars=new Map(),themes=new Map();
+ for(const m of queue)for(let i=0;i<m.notes.length;i++){
+  const r=m.rhythm?.[i];if(!r)continue;
+  if(!bars.has(r.measure))bars.set(r.measure,[]);
+  bars.get(r.measure).push({m,i,r});
+ }
+ const snapshot=rows=>rows.map(({m,i,r})=>({n:m.notes[i],beats:r.beats}));
+ const sample=(ref,j,count)=>ref[Math.round(j*(ref.length-1)/Math.max(1,count-1))];
+ for(const [bar,rows] of bars){
+  const sec=songSectionAt(bar);if(sec.offset%4!==0||!['Aメロ','Bメロ','サビ'].includes(sec.name))continue;
+  const block=Array.from({length:4},(_,j)=>bars.get(bar+j)||[]);
+  if(block.some(x=>!x.length))continue;
+  const key=sec.name+':'+Math.floor(sec.offset/4)%2;
+  const ref=themes.get(key);
+  if(!ref){themes.set(key,block.map(snapshot));continue;}
+  const all=block.flat(),reference=ref.flat(),original=snapshot(all);
+  const anchor=original[0].n;
+  const score=()=>{
+   const current=snapshot(all);let cost=0;
+   for(let j=0;j<all.length;j++){
+    const {m,i,r}=all[j],n=m.notes[i],target=sample(reference,j,all.length).n-reference[0].n;
+    cost+=Math.min(12,Math.abs(n-current[0].n-target))*.65;
+    if(j){const d=n-current[j-1].n;cost+=Math.max(0,Math.abs(d)-7)*1.5;}
+    if(m.harmony?.[i]?.notes&&!m.harmony[i].notes.has(n%12))cost+=r.beatPosition===0?2:0.6;
+    cost+=Math.abs(n-original[j].n)*.15;
+   }
+   return cost;
+  };
+  let best=score(),winner=original.map(x=>x.n);
+  for(const strength of [.45,.75,1]){
+   for(let j=0;j<all.length;j++){
+    const {m,i}=all[j], [lo,hi]=getRangeForMelody(m.inst),scale=new Set(D.SCALES[m.scaleName].map(x=>(x+m.key)%12));
+    const target=anchor+sample(reference,j,all.length).n-reference[0].n;
+    const desired=original[j].n+strength*(target-original[j].n);let opts=[];
+    for(let n=Math.max(lo,original[j].n-9);n<=Math.min(hi,original[j].n+9);n++)if(scale.has(n%12))opts.push(n);
+    m.notes[i]=opts.length?opts.sort((a,b)=>Math.abs(a-desired)-Math.abs(b-desired))[0]:original[j].n;
+   }
+   const c=score();if(c<best){best=c;winner=snapshot(all).map(x=>x.n);}
+  }
+  all.forEach(({m,i},j)=>{m.notes[i]=winner[j];});
+  // Rhythm variation within each unchanged harmony segment: preserve meter,
+  // note count, chord-change positions and phrase boundaries across questions.
+  for(let b=0;b<4;b++){
+   const row=block[b],source=ref[b];let start=0;
+   while(start<row.length){
+    let end=start+1;const h=row[start].m.harmony?.[row[start].i]?.harmonicStep;
+    while(end<row.length&&row[end].m.harmony?.[row[end].i]?.harmonicStep===h)end++;
+    const group=row.slice(start,end),total=group.reduce((v,x)=>v+x.r.beats,0);
+    if(group.length>=2&&total>=group.length*.25&&!group.slice(0,-1).some(x=>x.r.rest)){
+     const weights=group.map((x,j)=>.55*x.r.beats+.45*sample(source,start+j,row.length).beats);
+     // Alternating long-short variation, with a positive minimum duration.
+     const varied=weights.map((w,j)=>w*(j%2===0?1.18:.82));
+     const sum=varied.reduce((a,b)=>a+b,0);let pos=group[0].r.beatPosition,remaining=total;
+     group.forEach(({r},j)=>{const beats=j===group.length-1?remaining:.25+(total-group.length*.25)*varied[j]/sum;r.beatPosition=pos;r.beats=beats;pos+=beats;remaining-=beats;r.articulation=Math.max(.65,Math.min(.99,r.articulation*(j%2===0?1.02:.94)));});
+    }
+    start=end;
+   }
+  }
+  // Keep the reconstructed contour in the subsequent joint optimizer.
+  const groups=new Map();for(const x of all){if(!groups.has(x.m))groups.set(x.m,[]);groups.get(x.m).push(x.i);}
+  for(const [m,indices] of groups)(m.themeTargets??=[]).push({indices,ref:indices.map(i=>({n:m.notes[i],beats:m.rhythm[i].beats})),weight:3});
+ }
+}
+
+
+// V13: nested phrase references and meter-preserving note-count variation.
+function hierarchicalThemesV13(queue){
+ const bars=new Map(),refs=new Map();
+ for(const m of queue)for(let i=0;i<m.notes.length;i++){const r=m.rhythm[i];if(!bars.has(r.measure))bars.set(r.measure,[]);bars.get(r.measure).push({m,i,r});}
+ const snap=rows=>rows.map(x=>({n:x.m.notes[x.i],beats:x.r.beats}));
+ for(const size of [16,8,4])for(const [bar] of bars){
+  const sec=songSectionAt(bar);if(sec.offset%size||sec.offset+size>sec.bars||!['Aメロ','Bメロ','サビ'].includes(sec.name))continue;
+  const block=Array.from({length:size},(_,j)=>bars.get(bar+j)||[]);if(block.some(row=>!row.length))continue;
+  const key=size+':'+sec.name+':'+sec.offset%size, ref=refs.get(key);
+  if(!ref){refs.set(key,block.map(snap));continue;}
+  const rows=block.flat(),original=snap(rows),anchor=original[0].n,refAnchor=ref[0][0].n;
+  const targets=block.flatMap((row,b)=>row.map((_,j)=>anchor+ref[b][Math.round(j*(ref[b].length-1)/Math.max(1,row.length-1))].n-refAnchor));
+  const score=()=>rows.reduce((sum,x,j)=>{const n=x.m.notes[x.i],prev=j?rows[j-1].m.notes[rows[j-1].i]:n;return sum+Math.abs(n-targets[j])*.7+Math.abs(n-original[j].n)*.25+Math.max(0,Math.abs(n-prev)-7)*1.5+(x.m.harmony?.[x.i]?.notes&&!x.m.harmony[x.i].notes.has(n%12)?(x.r.beatPosition===0?3:.6):0);},0);
+  let best=score(),winner=original.map(x=>x.n);
+  for(const strength of [.35,.65,.9]){rows.forEach((x,j)=>{const [lo,hi]=getRangeForMelody(x.m.inst),pcs=new Set(D.SCALES[x.m.scaleName].map(v=>(v+x.m.key)%12));const target=original[j].n+strength*(targets[j]-original[j].n);let n=original[j].n,cost=Infinity;for(let k=Math.max(lo,n-9),end=Math.min(hi,n+9);k<=end;k++)if(pcs.has(k%12)&&Math.abs(k-target)<cost){cost=Math.abs(k-target);n=k;}x.m.notes[x.i]=n;});const c=score();if(c<best){best=c;winner=rows.map(x=>x.m.notes[x.i]);}}
+  rows.forEach((x,j)=>{x.m.notes[x.i]=winner[j];});
+ }
+}
+function varyNoteCountsV13(queue){
+ for(const m of queue){
+  const rows=m.notes.map((n,i)=>({n,r:{...m.rhythm[i]},h:m.harmony?.[i],c:m.chordInfos?.[i],p:m.phrasePlan?.[i]}));
+  const out=[];let edits=0;const limit=Math.max(1,Math.floor(rows.length/4));
+  for(let i=0;i<rows.length;i++){
+   const a=rows[i],b=rows[i+1],sec=songSectionAt(a.r.measure),eligible=['Aメロ','Bメロ','サビ'].includes(sec.name)&&sec.offset>=4;
+   const contiguous=b&&a.r.measure===b.r.measure&&Math.abs(a.r.beatPosition+a.r.beats-b.r.beatPosition)<1e-6&&!a.r.rest&&!a.r.phraseEnd&&a.h?.harmonicStep===b.h?.harmonicStep;
+   if(eligible&&edits<limit&&rows.length-edits>3&&contiguous&&Math.abs(a.n-b.n)<=4&&a.r.beats+b.r.beats<=2&&Math.random()<.23){out.push({...a,r:{...a.r,beats:a.r.beats+b.r.beats,rest:b.r.rest,phraseEnd:b.r.phraseEnd,articulation:b.r.articulation}});i++;edits++;continue;}
+   if(eligible&&edits<limit&&rows.length+edits<32&&a.r.beats>=.75&&!a.r.phraseEnd&&Math.random()<.28){const first=a.r.beats>=1.5?a.r.beats*2/3:a.r.beats/2,second=a.r.beats-first;const [lo,hi]=getRangeForMelody(m.inst),pcs=new Set(D.SCALES[m.scaleName].map(v=>(v+m.key)%12));const candidates=[a.n-2,a.n-1,a.n+1,a.n+2].filter(n=>n>=lo&&n<=hi&&pcs.has(n%12));const n=candidates.length?candidates[Math.floor(Math.random()*candidates.length)]:a.n;out.push({...a,r:{...a.r,beats:first,rest:0,phraseEnd:false}},{...a,n,r:{...a.r,beats:second,beatPosition:a.r.beatPosition+first}});edits++;continue;}
+   out.push(a);
+  }
+  m.notes=out.map(x=>x.n);m.rhythm=out.map(x=>x.r);if(m.harmony)m.harmony=out.map(x=>x.h);if(m.chordInfos)m.chordInfos=out.map(x=>x.c);if(m.phrasePlan)m.phrasePlan=out.map(x=>x.p);
+  m.themeTargets=[{indices:m.notes.map((_,i)=>i),ref:out.map(x=>({n:x.n,beats:x.r.beats})),weight:3}];
+ }
 }
 
 async function precomposeSong(token){
  if(musicGoal()!=='song'||el.melodyRhythm?.value!=='musical')return;
  const startingBar=songRhythmCarry?.bar??songMeasure;
- const cycle=songCycleAt(startingBar);
+ track14=design14(startingBar);const cycle=track14.id;personalityAt(startingBar);previousMusicalKey=null;previousMusicalScale=null;songSoundIdentity.clear();songInstrumentation.clear();
  if(composedSongQueue.length&&composedSongCycle===cycle)return;
- composedSongQueue=[];composedSongCycle=cycle;
+ composedSongQueue=[];composedSongCycle=cycle;recurrenceV11.clear();
  const selection=arrangementSelections();
- const endBar=(cycle+1)*SONG_FORM_LENGTH;
+ const endBar=track14.end;
  // A small number of notes per question can require hundreds of questions.
  // Guard against infinite generation if the rhythm configuration changes.
  for(let i=0;i<900;i++){
   const bar=songRhythmCarry?.bar??songMeasure;
   if(bar>=endBar)break;
   const m=generateMelody();
-  prearrangeMelody(m,selection);
   composedSongQueue.push(m);
+  previousMelodyEnding=m.notes.at(-1);
   if(i%6===5){await new Promise(resolve=>setTimeout(resolve,0));if(token!==runToken)return;}
   const after=songRhythmCarry?.bar??songMeasure;
   if(after<=bar&&i>850)break;
  }
+ rebuildLongThemesV12(composedSongQueue);
+ hierarchicalThemesV13(composedSongQueue);
+ varyNoteCountsV13(composedSongQueue);
+ const last=composedSongQueue.at(-1);if(last){const i=last.notes.length-1,[lo,hi]=getRangeForMelody(last.inst);const ns=[];for(let n=lo;n<=hi;n++)if(n%12===last.key)ns.push(n);if(ns.length)last.notes[i]=ns.reduce((a,b)=>Math.abs(a-last.notes[i])<=Math.abs(b-last.notes[i])?a:b);last.rhythm[i].articulation=.99;last.end14=true;}
+
+ for(let i=0;i<composedSongQueue.length;i++){
+  if(token!==runToken)return;
+  prearrangeMelody(composedSongQueue[i],selection);
+  if(i%6===5)await new Promise(resolve=>setTimeout(resolve,0));
+ }
+ if(last?.end14){const i=last.notes.length-1,[lo,hi]=getRangeForMelody(last.inst);const ns=[];for(let n=lo;n<=hi;n++)if(n%12===last.key)ns.push(n);if(ns.length)last.notes[i]=ns.reduce((a,b)=>Math.abs(a-last.notes[i])<=Math.abs(b-last.notes[i])?a:b);if(last.harmony){const pcs=[...new Set([0,2,4].map(j=>(last.key+D.SCALES[last.scaleName][j%D.SCALES[last.scaleName].length])%12))];const chord={root:last.key,degree:0,quality:pcs.includes((last.key+3)%12)?'m':'',pcs,notes:new Set(pcs),inversion:0,measure:last.rhythm[i].measure,slot:0,harmonicStep:-14,groupId:-14,progressionName:'終止',progressionPosition:1,progressionLength:1};last.harmony[i]=chord;last.chordInfos[i]=chordInfo(chord,last.key,last.scaleName,chord.measure);if(last.basicPlan)last.basicPlan[i]=chooseSmoothVoicing(chord,last.notes[i],selection.backing||last.inst,null);last.arrangementPlan[i]=[];}}
+ analyzeSongThemesV10(composedSongQueue);
 }
 async function nextComposedMelody(token){
  if(musicGoal()!=='song'||el.melodyRhythm?.value!=='musical')return generateMelody();
@@ -1151,7 +1469,7 @@ function generateMelody(){
   const accompanied=el.melodyComposition?.value==='accompanied';
   const [fullLow,fullHigh]=getRangeForMelody(inst);
   const setting=Number(el.melodyCount.value);
-  const count=setting===-1?3+Math.floor(Math.random()*30):setting===0?3+Math.floor(Math.random()*6):setting;
+  let count=setting===-1?3+Math.floor(Math.random()*30):setting===0?3+Math.floor(Math.random()*6):setting;
   const continuity=el.melodyContinuity?.value==='on'&&previousMelodyEnding!==null;
   const center=(fullLow+fullHigh)/2;
   // Keep the working register near the previous ending, even if the selected instrument changes.
@@ -1163,14 +1481,14 @@ function generateMelody(){
     if(high-low<8){low=Math.max(fullLow,Math.min(low,fullHigh-12));high=Math.min(fullHigh,low+12);}
   }
   const all=Object.values(D.SCALE_CATEGORIES).flat(),categoryScales=D.SCALE_CATEGORIES[Object.keys(D.SCALE_CATEGORIES)[Number(el.melodyCategory.value)]];
-  const scaleName=el.melodyScaleMode.value==='3'?chooseMusicalScale(all):el.melodyScaleMode.value==='1'?pick(all):el.melodyScaleMode.value==='2'?pick(categoryScales):categoryScales[Number(el.melodyScale.value)];
+  let scaleName=el.melodyScaleMode.value==='3'?chooseMusicalScale(all):el.melodyScaleMode.value==='1'?pick(all):el.melodyScaleMode.value==='2'?pick(categoryScales):categoryScales[Number(el.melodyScale.value)];
   const allowedKeys=el.melodyKeyMode.value==='1'?Array.from({length:12},(_,i)=>i):[Number(el.melodyKey.value)];
-  const key=el.melodyKeyMode.value==='2'?chooseMusicalKey(scaleName):continuity&&allowedKeys.length>1?weightedChoice(allowedKeys,k=>{
+  let key=el.melodyKeyMode.value==='2'?chooseMusicalKey(scaleName):continuity&&allowedKeys.length>1?weightedChoice(allowedKeys,k=>{
     const scale=D.SCALES[scaleName].map(x=>(k+x)%12);
     const distance=Math.min(...scale.map(pc=>Math.min((pc-previousMelodyEnding%12+12)%12,(previousMelodyEnding%12-pc+12)%12)));
     return distance===0?6:distance===1?2:0.3;
   }):pick(allowedKeys);
-  previousMusicalKey=key;previousMusicalScale=scaleName;
+  if(track14){if(track14.key===null){track14.key=key;track14.scale=scaleName;}else{key=track14.key;scaleName=track14.scale;}}previousMusicalKey=key;previousMusicalScale=scaleName;
   const scaleSet=new Set(D.SCALES[scaleName].map(x=>(key+x)%12));
   const natural=el.melodyStyle?.value==='natural';
   const scaleOnly=el.melodySelection.value==='1'||natural||['harmonic','accompanied'].includes(el.melodyComposition?.value);
@@ -1179,7 +1497,7 @@ function generateMelody(){
   if(!candidates.length)throw new Error('選択した条件では音を生成できません');
   const harmonic=['harmonic','accompanied'].includes(el.melodyComposition?.value);
   const rhythm=el.melodyRhythm?.value==='musical'?melodicRhythm(count):null;
-  const harmony=harmonic?melodyHarmony(scaleName,key,count,rhythm):null;
+  if(rhythm)count=rhythm.length;const harmony=harmonic?melodyHarmony(scaleName,key,count,rhythm):null;
   const notes=[];
   const phrasePlan=melodicPhrasePlan(rhythm,scaleName,key);
   let previous=continuity?previousMelodyEnding:anchor;
@@ -1339,7 +1657,7 @@ async function runMelody(token){
   updateMelodyMix();
   displayMelodyQuestion(m);
   const tempo=Math.max(40,Math.min(240,Number(el.melodyTempo?.value)||100));
-  const beatMs=60000/(musicGoal()==='song'?Math.max(40,Math.min(240,tempo*personalityAt(m.rhythm?.[0]?.measure??songMeasure).tempo)):tempo);
+  const beatMs=track14?60000/track14.bpm:60000/(musicGoal()==='song'?Math.max(40,Math.min(240,tempo*personalityAt(m.rhythm?.[0]?.measure??songMeasure).tempo)):tempo);
   let accompaniment=[];
   const backing=arrangementInstrument('backingInstrument',m.inst)||m.inst;
   const leadLayers=['leadLayer1','leadLayer2'].map(id=>[id,arrangementInstrument(id)]).filter(x=>x[1]);
@@ -1356,11 +1674,11 @@ async function runMelody(token){
     const ending=rhythm&&musicGoal()==='song'&&songEnding(rhythm.measure);
     const leadRest=rhythm&&expressiveRest(rhythm,rhythm.measure,'lead');
     const soundMs=slotMs?Math.max(35,slotMs*rhythm.articulation*(ending?.88:1)):durationSec*1000;
-    if(m.accompanied&&(i===0||(m.harmony?.[i]?.harmonicStep!==m.harmony?.[i-1]?.harmonicStep)||((rhythm?.beatPosition===0)&&rhythm.measure%4===0)||((rhythm?.beatPosition!==undefined)&&grooveAccent(rhythm.measure,rhythm.beatPosition)&&rhythm.beatPosition>0&&instrumentRole(backing)!=='sustain'))){
+    if(m.accompanied&&(i===0||(m.basicPlan&&m.basicPlan[i].join()!==m.basicPlan[i-1]?.join())||(m.harmony?.[i]?.harmonicStep!==m.harmony?.[i-1]?.harmonicStep)||((rhythm?.beatPosition===0)&&rhythm.measure%4===0)||((rhythm?.beatPosition!==undefined)&&grooveAccent(rhythm.measure,rhythm.beatPosition)&&rhythm.beatPosition>0&&instrumentRole(backing)!=='sustain'))){
       for(const n of accompaniment)synth.noteOff(1,n);
       accompaniment=[];
-      if(m.harmony?.[i]&&!(musicGoal()==='song'&&rhythm&&songSectionAt(rhythm.measure).offset%8===7&&rhythm.beatPosition>=2)&&!ending){
-        accompaniment=enhancedVoicing(m.harmony[i],m.notes[i],backing,accompanimentVoicing,rhythm?.measure??0);
+      if(m.harmony?.[i]&&!(musicGoal()==='song'&&rhythm&&songSectionAt(rhythm.measure).offset%8===7&&rhythm.beatPosition>=2)&&(!ending||(m.end14&&i===m.notes.length-1))){
+        accompaniment=m.basicPlan?.[i]?.slice()??enhancedVoicing(m.harmony[i],m.notes[i],backing,accompanimentVoicing,rhythm?.measure??0);
         if(accompaniment.length)accompanimentVoicing=[...accompaniment];
         if(accompaniment.length){
           setAccompanimentPreset(backing);updateMelodyMix();
@@ -1386,15 +1704,15 @@ async function runMelody(token){
     for(const event of m.arrangementPlan?.[i]||[]){
       playArrangementEvent(event.id,event.inst,event.pitches,event.velocity,event.holdMs,token,event.delayMs);
     }
-    if(!leadRest)await playSingleFor(m.inst,m.notes[i],soundMs,token);
+    if(!leadRest||track14)await playSingleFor(m.inst,m.notes[i],soundMs,token);
     else await sleep(soundMs);
-    if(rhythm&&musicGoal()==='song'&&newSongBoundary(rhythm.measure+1)&&rhythm.phraseEnd){
+    if(rhythm&&musicGoal()==='song'&&newSongBoundary(rhythm.measure+1)&&rhythm.phraseEnd&&i===m.notes.length-1){
       clearArrangement();for(const n of accompaniment)synth.noteOff(1,n);accompaniment=[];
       await sleep(Math.min(1800,beatMs*1.7));
     }
     if(token!==runToken)return;
-    if(i<m.notes.length-1){
-      const gap=rhythm?Math.max(0,slotMs-soundMs)+(rhythm.rest*beatMs)+(rhythm.phraseEnd?beatMs*0.5:0):soundGapSec*1000;
+    if(i<m.notes.length-1||track14){
+      const gap=rhythm?Math.max(0,slotMs-soundMs)+(rhythm.rest*beatMs)+(rhythm.phraseEnd&&!track14?beatMs*0.5:0):soundGapSec*1000;
       await sleep(gap);
     }
   }
@@ -1404,7 +1722,7 @@ async function runMelody(token){
   const keyLang=speechLang('4','key'),keyText=pitchText(m.key,keyLang),scale=(keyLang==='en-US'?D.SCALE_ENGLISH_NAMES:D.SCALE_JAPANESE_NAMES)[m.scaleName]||m.scaleName;
   await speakPart('4','key',keyText+' '+scale);
   await speakNotes(m.notes,'4');await speakInstrument(m.inst,'4');
-  if(token===runToken)await sleep(questionGapSec*1000);
+  if(token===runToken&&!track14)await sleep(questionGapSec*1000);
 }
 async function runProgression(token){
   const genre=el.genre.value,source=el.progressionSource?.value||'legacy';
@@ -1442,7 +1760,7 @@ async function runProgression(token){
 }
 async function sessionLoop(token){while(playing&&token===runToken&&Date.now()<endAt){switch(el.mode.value){case'0':await runSingle(token);break;case'1':await runChord(token);break;case'2':await runInterval(token);break;case'3':await runProgression(token);break;case'4':await runMelody(token);break;}}if(token===runToken&&playing)stopSession('時間終了');}
 function validateSettings(){const minutes=Number(el.minutes.value),duration=Number(el.duration.value),soundGap=Number(el.soundGap.value),questionGap=Number(el.questionGap.value);if(!Number.isFinite(minutes)||minutes<0.1||minutes>600)throw new Error('再生時間は0.1〜600分で指定してください');if(!Number.isFinite(duration)||duration<=0)throw new Error('音の長さは0秒より大きくしてください');if(!Number.isFinite(Number(el.octaveGap.value))||Number(el.octaveGap.value)<0)throw new Error('音名とオクターブ番号の間隔は0秒以上にしてください');if(!Number.isFinite(soundGap)||soundGap<0||!Number.isFinite(questionGap)||questionGap<0)throw new Error('間隔は0秒以上で指定してください');if(!selectedInstrumentPool().some(x=>{try{getSelectedRange(x);return true;}catch(_){return false;}}))throw new Error('選択した音域に対応する楽器がありません');if(['1','3'].includes(el.mode.value)&&!selectedInstrumentPool().some(x=>{try{const [a,b]=getSelectedRange(x);return chordEligible(x)&&b-a>=12;}catch(_){return false;}}))throw new Error('コード演奏に対応した楽器を選択してください');if(el.mode.value==='4'&&!selectedInstrumentPool().some(x=>{try{getRangeForMelody(x);return true;}catch(_){return false;}}))throw new Error('選択した楽器とメロディ音域が一致しません');if(el.mode.value==='3'&&el.progressionKeyMode.value==='1')parseKeyText(el.progressionKey.value);if(el.mode.value==='4'&&el.melodyRhythm?.value==='musical'&&(!Number.isFinite(Number(el.melodyTempo.value))||Number(el.melodyTempo.value)<40||Number(el.melodyTempo.value)>240))throw new Error('テンポは40〜240 BPMで指定してください');durationSec=duration;soundGapSec=soundGap;questionGapSec=questionGap;return minutes;}
-async function startSession(){if(playing||!soundLoaded)return;configureIOSAudio();if(el.speech.value==='on')primeSpeech();let minutes;try{minutes=validateSettings();}catch(e){el.status.textContent=e.message;return;}requestWakeLock();el.start.disabled=true;el.stop.disabled=true;try{await audioContext.resume();if(el.speech.value==='on')await speechPrimePromise;playing=true;runToken++;const token=runToken;endAt=Date.now()+minutes*60000;previousNote=-1;previousMelodyEnding=null;songHarmony=null;songMeasure=0;songRhythmCarry=null;songMotif=null;songMelodyMotifs.clear();songArrangementMotifs.clear();songGrooveMemory.clear();songPhraseThemes.clear();songBassMemory.clear();songSoundIdentity.clear();songBassContour.clear();songPersonality=null;songPersonalityCycle=-1;songPersonalityNextCycle=0;songPersonalityGeneration=0;accompanimentVoicing=null;arrangementVoicing.clear();arrangementMotifPatterns.clear();songInstrumentation.clear();composedSongQueue=[];composedSongCycle=-1;playbackBar=0;el.stop.disabled=false;el.status.textContent='トレーニング中';timerTicker=setInterval(updateTimer,250);updateTimer();sessionLoop(token).catch(e=>{if(token===runToken)stopSession('再生エラー：'+e.message);});}catch(e){el.status.textContent='再生準備エラー：'+e.message;el.start.disabled=false;el.stop.disabled=true;releaseWakeLock();}}
+async function startSession(){if(playing||!soundLoaded)return;configureIOSAudio();if(el.speech.value==='on')primeSpeech();let minutes;try{minutes=validateSettings();}catch(e){el.status.textContent=e.message;return;}requestWakeLock();el.start.disabled=true;el.stop.disabled=true;try{await audioContext.resume();if(el.speech.value==='on')await speechPrimePromise;playing=true;mixTrimV11.fill(1);mixTickV11=0;recurrenceV11.clear();runToken++;const token=runToken;endAt=Date.now()+minutes*60000;previousNote=-1;previousMelodyEnding=null;songHarmony=null;songMeasure=0;track14=null;serial14=0;songRhythmCarry=null;songMotif=null;songMelodyMotifs.clear();songArrangementMotifs.clear();songGrooveMemory.clear();songPhraseThemes.clear();songBassMemory.clear();songSoundIdentity.clear();songBassContour.clear();songPersonality=null;songPersonalityCycle=-1;songPersonalityNextCycle=0;songPersonalityGeneration=0;accompanimentVoicing=null;arrangementVoicing.clear();arrangementMotifPatterns.clear();songInstrumentation.clear();composedSongQueue=[];composedSongCycle=-1;playbackBar=0;el.stop.disabled=false;el.status.textContent='トレーニング中';timerTicker=setInterval(()=>{updateTimer();if(el.mode.value==='4'&&musicGoal()==='song'){monitorMixV10();monitorChannelsV11();}else if(mixGain)mixGain.gain.value=1;},250);updateTimer();sessionLoop(token).catch(e=>{if(token===runToken)stopSession('再生エラー：'+e.message);});}catch(e){el.status.textContent='再生準備エラー：'+e.message;el.start.disabled=false;el.stop.disabled=true;releaseWakeLock();}}
 function stopSession(reason='停止しました'){composedSongQueue=[];composedSongCycle=-1;if(!playing&&el.start.disabled===false)return;playing=false;runToken++;clearTimers();releaseWakeLock();if(timerTicker){clearInterval(timerTicker);timerTicker=null;}stopAllNotes();clearArrangement();try{speechSynthesis.cancel();}catch(_){}try{audioContext?.suspend();}catch(_){}el.start.disabled=!soundLoaded;el.stop.disabled=true;el.status.textContent=reason;el.remaining.textContent='残り時間：00:00';if(reason==='時間終了')el.answer.textContent='終了';}
 
 el.instrument.addEventListener('change',()=>{updateSettingsVisibility();updateInstrumentRange();});el.mode.addEventListener('change',updateSettingsVisibility);el.range.addEventListener('change',updateSettingsVisibility);el.melodyKeyMode.addEventListener('change',updateSettingsVisibility);el.melodyScaleMode.addEventListener('change',updateSettingsVisibility);el.melodyCategory.addEventListener('change',updateMelodyScales);el.progressionKeyMode.addEventListener('change',updateSettingsVisibility);for(const [id,output] of [['instrumentVolume','instrumentVolumeValue'],['speechVolume','speechVolumeValue']])el[id].addEventListener('input',()=>$(output).textContent=el[id].value+'%');el.speed.addEventListener('input',()=>el.speedValue.textContent=Number(el.speed.value).toFixed(1));el.start.addEventListener('click',startSession);el.stop.addEventListener('click',()=>stopSession('停止しました'));
