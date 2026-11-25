@@ -212,7 +212,7 @@ function jointCompose18(queue){
  const identity=sec.name+':'+(sec.offset%8)+':'+h.slot, remembered=memory.get(identity);let best=null;
  const desired=sec.name==='Bメロ'?[2,5,7,7]:sec.name==='サビ'?[0,9,5,7]:sec.name==='イントロ'?[0,0,5,0]:sec.name==='アウトロ'?[5,7,0,0]:[0,5,9,7];
  for(const c of pool){let cost=previous?voiceLeadingCost(previous,c)*.55:0;const rel=(c.root-key+12)%12;cost+=pitchDistance(rel,desired[sec.offset%4])*.22;cost+=previous?.root===c.root&&sec.offset%4!==0?.7:0;cost+=remembered&&remembered.root!==c.root?1.1:0;cost-=color.filter(x=>c.pcs.includes((key+x)%12)).length*(.25+t*.55);cost+=c.quality==='dim'||c.quality==='aug'?(1-t)*1.5:0; if(sec.offset===sec.bars-1&&sec.name==='Bメロ')cost+=rel===0?3:0;if(sec.name==='アウトロ'&&sec.offset===sec.bars-1)cost+=rel===0?-8:8;
- let last=prevNote,notes=[];for(const x of rows){const orig=x.m.notes[x.i],[lo,hi]=getRangeForMelody(x.m.inst);let win=orig,score=Infinity;for(let n=Math.max(lo,orig-3);n<=Math.min(hi,orig+3);n++){if(!pcs.includes(n%12))continue;const strong=x.r.beatPosition===0||x.r.beats>=1;let v=Math.abs(n-orig)*(x.r.hook21?4:.8)+(c.pcs.includes(n%12)?0:strong?1.7: .35)+(last===null?0:Math.max(0,Math.abs(n-last)-5)*.55);if(color.includes((n-key+120)%12))v-=.35+t*.35;if(v<score){score=v;win=n;}}notes.push(win);cost+=score/rows.length;last=win;}
+ let last=prevNote,notes=[];for(const x of rows){const orig=x.m.notes[x.i],[lo,hi]=getRangeForMelody(x.m.inst);let win=orig,score=Infinity;for(let n=Math.max(lo,orig-3);n<=Math.min(hi,orig+3);n++){if(!pcs.includes(n%12)||(x.r.hook21&&n!==orig))continue;const strong=x.r.beatPosition===0||x.r.beats>=1;let v=Math.abs(n-orig)*(x.r.hook21?4:.8)+(c.pcs.includes(n%12)?0:strong?1.7: .35)+(last===null?0:Math.max(0,Math.abs(n-last)-5)*.55);if(color.includes((n-key+120)%12))v-=.35+t*.35;if(v<score){score=v;win=n;}}notes.push(win);cost+=score/rows.length;last=win;}
  if(!best||cost<best.cost)best={c,notes,cost};}
  if(!best)continue;const c=best.c;memory.set(identity,c);const id=1800000+(++serial);const chord={...c,notes:new Set(c.pcs),inversion:0,measure:r.measure,slot:h.slot,harmonicStep:id,groupId:id,progressionName:'独自和声',progressionPosition:1,progressionLength:2};rows.forEach((x,j)=>{x.m.notes[x.i]=best.notes[j];x.m.harmony[x.i]=chord;x.m.chordInfos[x.i]=chordInfo(chord,key,m.scaleName,r.measure);});previous=c;prevNote=best.notes.at(-1);
  }
@@ -1630,6 +1630,38 @@ function sparseBacking21(queue,bpm){
  }
 }
 
+// V22: choose a chorus before shaping the surrounding sections.
+function chorusFirst22(queue){
+ const sections=[];let current=null;
+ for(const m of queue)for(let i=0;i<m.notes.length;i++){const r=m.rhythm[i],s=songSectionAt(r.measure),start=r.measure-s.offset;if(!current||current.start!==start){current={start,name:s.name,rows:[]};sections.push(current);}current.rows.push({m,i,r});}
+ const choruses=sections.filter(s=>s.name==='サビ');if(!choruses.length)return;
+ const quiet=['dream','floating','meditative','wistful'].includes(track14.emotionName18)||track14.person.range<.9;
+ const intensity=quiet?.42:Math.min(1,.55+track14.person.range*.35);
+ const pool=x=>{const [lo,hi]=getRangeForMelody(x.m.inst);return Array.from({length:hi-lo+1},(_,i)=>lo+i).filter(n=>D.SCALES[x.m.scaleName].includes((n-x.m.key+120)%12));};
+ const nearest=(p,t)=>p.reduce((a,b)=>Math.abs(a-t)<=Math.abs(b-t)?a:b);
+ const first=choruses[0].rows,base=first.map(x=>x.m.notes[x.i]);
+ const span=first.at(-1).r.measure-first[0].r.measure+1;
+ const progress=x=>(x.r.measure-first[0].r.measure+x.r.beatPosition/(METER_BEATS[x.r.meter]||4))/span;
+ let best=null;
+ for(let k=0;k<36;k++){
+ const peak=.30+(k%6)*.095, lift=(quiet?3:6)+Math.floor(k/6)%3*2, sign=k%3===0?-1:1;
+ let prev=base[0],score=0,ns=[],lastD=0,run=0;
+ for(let j=0;j<first.length;j++){const x=first[j],p=pool(x),u=progress(x),arc=Math.max(0,1-Math.abs(u-peak)/.33),center=base[0]+sign*lift*arc*intensity;
+ const target=.48*base[j]+.52*center+(j%3===1?1:0);let win=base[j],cost=Infinity;
+ for(const n of p){const d=n-prev, strong=x.r.beats>=1||x.r.beatPosition===0,h=x.m.harmony?.[x.i];let c=Math.abs(n-target)*.55+Math.max(0,Math.abs(d)-(quiet?4:7))*2+(d===0?run*.8:0)+(h&&!h.notes.has(n%12)?strong?1.2:.2:0);if(Math.abs(lastD)>=5&&Math.sign(d)===Math.sign(lastD))c+=1.8;if(j===first.length-1)c+=Math.min((n-x.m.key+120)%12,(x.m.key-n+120)%12)*.6;if(c<cost){cost=c;win=n;}}
+ ns.push(win);score+=cost;run=win===prev?run+1:0;lastD=win-prev;prev=win;}
+ const ds=ns.slice(1).map((n,i)=>n-ns[i]),range=Math.max(...ns)-Math.min(...ns),repeats=ds.filter((d,i)=>i>=4&&d===ds[i-4]&&ds[i-1]===ds[i-5]).length;
+ score=score/first.length+Math.abs(range-(quiet?6:12))*.16+repeats/Math.max(1,ds.length)*3+Math.max(0,ds.filter(d=>Math.abs(d)>=5).length/Math.max(1,ds.length)-.18)*5;
+ if(!best||score<best.score)best={ns,score};
+ }
+ first.forEach((x,j)=>{x.m.notes[x.i]=best.ns[j];x.r.hook21=true;});
+ for(const s of choruses.slice(1)){const rows=s.rows,len=rows.at(-1).r.measure-s.start+1;rows.forEach((x,j)=>{const u=(x.r.measure-s.start+x.r.beatPosition/(METER_BEATS[x.r.meter]||4))/len;const idx=Math.min(first.length-1,Math.round(u*(first.length-1)));const p=pool(x);if(p.length){x.m.notes[x.i]=nearest(p,best.ns[idx]+(j>rows.length*.8&&!quiet?2:0));x.r.hook21=true;}});}
+ // Keep the verse distinct; only a brief preview and a prepared chorus entrance.
+ for(let k=0;k<sections.length;k++){const s=sections[k],next=sections[k+1];if(s.name==='イントロ'){const rows=s.rows.slice(0,Math.min(4,s.rows.length));rows.forEach((x,j)=>{const p=pool(x);if(p.length)x.m.notes[x.i]=nearest(p,best.ns[Math.min(j,best.ns.length-1)]);});}
+ if(next?.name==='サビ'){const target=next.rows[0].m.notes[next.rows[0].i],tail=s.rows.slice(-3);tail.forEach((x,j)=>{const p=pool(x);if(p.length)x.m.notes[x.i]=nearest(p,target-(tail.length-j)*(quiet?1:2));});}}
+ for(const m of queue)m.themeTargets=[{indices:m.notes.map((_,i)=>i),ref:m.notes.map((n,i)=>({n,beats:m.rhythm[i].beats})),weight:12}];
+}
+
 async function precomposeSong(token){
  if(musicGoal()!=='song'||el.melodyRhythm?.value!=='musical')return;
  const startingBar=songRhythmCarry?.bar??songMeasure;
@@ -1657,7 +1689,7 @@ async function precomposeSong(token){
  varyNoteCountsV13(composedSongQueue);
  lyricalThemesV15(composedSongQueue);
  sectionThemesV16(composedSongQueue);
- hooks21(composedSongQueue);
+ chorusFirst22(composedSongQueue);
  jointCompose18(composedSongQueue);
  const last=composedSongQueue.at(-1);if(last){const i=last.notes.length-1,[lo,hi]=getRangeForMelody(last.inst);const ns=[];for(let n=lo;n<=hi;n++)if(n%12===last.key)ns.push(n);if(ns.length)last.notes[i]=ns.reduce((a,b)=>Math.abs(a-last.notes[i])<=Math.abs(b-last.notes[i])?a:b);last.rhythm[i].articulation=.99;last.end14=true;}
 
