@@ -136,18 +136,23 @@ const SONG_FORM=[{name:'イントロ',bars:4,energy:0.27},{name:'Aメロ',bars:1
 const SONG_FORM_LENGTH=SONG_FORM.reduce((n,x)=>n+x.bars,0);
 let track14=null, serial14=0;
 function design14(start){
- const person=pick(SONG_PERSONALITIES.filter(p=>p!==track14?.person));
+ const style=$('songStyle27')?.value||'mixed';
+ const game=style==='game'||(style==='mixed'&&Math.random()<.35);
+ const people=game?GAME_PERSONALITIES27:SONG_PERSONALITIES;
+ const person=pick(people.filter(p=>p!==track14?.person));
  const mode=el.melodyMeter?.value||'4/4';
  const meter=mode==='random'?pick(['4/4','3/4','6/8','2/4','5/4'].filter(x=>x!==track14?.meter)):mode;
  const bpm=Math.max(40,Math.min(240,(Number(el.melodyTempo?.value)||100)*person.tempo*(.9+Math.random()*.2)));
  const unit=4*METER_BEATS[meter]*60/bpm, target=120+Math.random()*180;
  const blocks=Math.max(Math.ceil(120/unit),Math.min(Math.floor(300/unit),Math.round(target/unit)));
  const forms=[['イントロ','Aメロ','Bメロ','サビ','間奏','Aメロ','サビ','アウトロ'],['Aメロ','サビ','Aメロ','Bメロ','サビ','アウトロ'],['イントロ','Aメロ','Bメロ','サビ','間奏','Bメロ','サビ','アウトロ']];
- const names=pick(forms).slice();while(names.length>blocks){let j=names.findIndex(x=>['イントロ','間奏','Bメロ'].includes(x));names.splice(j<0?1:j,1);}
+ const gameForms=[['イントロ','Aメロ','間奏','Bメロ','サビ','Aメロ','アウトロ'],['Aメロ','Bメロ','間奏','Aメロ','アウトロ'],['イントロ','Aメロ','Bメロ','サビ','間奏','サビ','アウトロ']];
+ const names=pick(game?gameForms:forms).slice();while(names.length>blocks){let j=names.findIndex(x=>['イントロ','間奏','Bメロ'].includes(x));names.splice(j<0?1:j,1);}
  const energy={'イントロ':.27,'Aメロ':.45,'Bメロ':.67,'サビ':.95,'間奏':.52,'アウトロ':.24};
- const form=names.map(name=>({name,bars:4,energy:energy[name]}));
+ const labels={'イントロ':'序奏','Aメロ':'第一主題','Bメロ':'展開部','サビ':'到達点','間奏':'第二主題','アウトロ':'終結部'};
+ const form=names.map(name=>({name,label:game?labels[name]:name,bars:4,energy:game?energy[name]*person.range:energy[name]}));
  for(let i=form.length;i<blocks;i++)pick(form.filter(x=>x.name!=='アウトロ'&&x.name!=='イントロ')).bars+=4;
- return {id:++serial14,start,end:start+blocks*4,form,person,meter,bpm,key:null,scale:null};
+ return {id:++serial14,start,end:start+blocks*4,form,person,game,meter,bpm,key:null,scale:null};
 }
 function musicGoal(){return $('musicGoal')?.value||'song';}
 // A personality belongs to a complete song, not to the entire training session.
@@ -1030,7 +1035,7 @@ function updateMelodyQuestion(m,i,label){
  notes.forEach((node,j)=>{if(m.rhythm?.[j]?.silent26)node.textContent='休符';});
  notes.forEach((node,j)=>node.className=j===i?'active-melody-note':'melody-note');
  const sec=m.rhythm?.[i]?songSectionAt(m.rhythm[i].measure):null;
- el.status.textContent=`${track14?`第${track14.id}曲 / ${Math.round(track14.bpm)} BPM / `:''}${sec&&musicGoal()==='song'?sec.name+'・'+personalityAt(m.rhythm[i].measure).name+' / ':''}メロディ再生中 ${i+1}/${m.notes.length}${label}`;
+ el.status.textContent=`${track14?`第${track14.id}曲 / ${Math.round(track14.bpm)} BPM / `:''}${sec&&musicGoal()==='song'?(sec.label||sec.name)+'・'+personalityAt(m.rhythm[i].measure).name+' / ':''}メロディ再生中 ${i+1}/${m.notes.length}${label}`;
  if(m.harmony)try{displayMelodyChords(m,i);}catch(e){console.warn("Harmony display",e);}
 }
 function accompanimentStyle(section){
@@ -1701,6 +1706,35 @@ function safeRedesign25(queue){
 }
 
 // V26: phrase-level narrative and breathing, without moving harmony boundaries.
+const GAME_PERSONALITIES27=[
+ {name:'幻想的な探索曲',genre:'J-POP',tempo:.85,density:.72,complexity:1.1,syncopation:.35,range:.76,brightness:.48},
+ {name:'冒険の主題',genre:'J-POP',tempo:1.03,density:.92,complexity:1.05,syncopation:.5,range:1.1,brightness:.76},
+ {name:'戦闘曲',genre:'ロック',tempo:1.22,density:1.12,complexity:.85,syncopation:.7,range:1.15,brightness:.7},
+ {name:'街・休息の曲',genre:'ジャズ',tempo:.78,density:.68,complexity:1.1,syncopation:.45,range:.7,brightness:.55}];
+function structuralMelody27(queue){
+ const bars=new Map();
+ for(const m of queue)for(let i=0;i<m.notes.length;i++){const r=m.rhythm[i];if(!bars.has(r.measure))bars.set(r.measure,[]);bars.get(r.measure).push({m,i,r});}
+ const entries=[...bars],quiet=track14.person.range<.9;
+ const shapes=[[0,2,1,4,3,6,4,0],[0,-2,1,2,0,4,2,-1],[0,1,3,1,4,2,5,0],[0,3,2,-1,1,4,3,0]];
+ let prev=null,primary=null;
+ const pool=x=>{const [lo,hi]=getRangeForMelody(x.m.inst);return Array.from({length:hi-lo+1},(_,i)=>lo+i).filter(n=>D.SCALES[x.m.scaleName].includes((n-x.m.key+120)%12));};
+ for(let a=0;a<entries.length;){const sec=songSectionAt(entries[a][0]);const count=Math.min(8,sec.bars-sec.offset,entries.length-a), chunk=entries.slice(a,a+count);a+=count;
+ const rows=chunk.flatMap(x=>x[1]);if(!rows.length)continue;
+ if(!track14.game&&sec.name==='サビ'){prev=rows.at(-1).m.notes[rows.at(-1).i];continue;}
+ const center=rows.reduce((v,x)=>v+x.m.notes[x.i],0)/rows.length;
+ let shape=pick(shapes);if(track14.game&&sec.name==='Aメロ'){if(!primary)primary=shape;else shape=primary.map((v,i)=>v+(i===5?1:0));}
+ if(track14.game&&sec.name==='間奏')shape=shape.map(v=>-v);
+ const strength=(quiet?.75:1.35)*(sec.name==='サビ'?1.2:1);
+ const anchors=[];
+ for(let b=0;b<chunk.length;b++){const rr=chunk[b][1],x=rr.reduce((u,v)=>v.r.beats>u.r.beats?v:u),p=pool(x),h=x.m.harmony?.[x.i];if(!p.length)continue;
+ const target=center+shape[Math.round(b*7/Math.max(1,count-1))]*strength-2;
+ let best=p[0],cost=Infinity;for(const n of p){let c=Math.abs(n-target)+(h&&!h.notes.has(n%12)?3:0)+(anchors.length?Math.max(0,Math.abs(n-anchors.at(-1).n)-7)*2:0);if(b===count-1&&sec.name!=='Bメロ'&&n%12===x.m.key)c-=1.5;if(c<cost){cost=c;best=n;}}anchors.push({index:rows.indexOf(x),n:best});}
+ if(!anchors.length)continue;
+ let k=0;for(let j=0;j<rows.length;j++){const x=rows[j],p=pool(x);if(!p.length)continue;while(k+1<anchors.length&&j>anchors[k+1].index)k++;const l=anchors[k],r=anchors[Math.min(k+1,anchors.length-1)];const t=Math.max(0,Math.min(1,(j-l.index)/Math.max(1,r.index-l.index)));const target=l.n+(r.n-l.n)*t;const exact=anchors.find(z=>z.index===j);let best=p[0],cost=Infinity;for(const n of p){const d=prev===null?0:n-prev,h=x.m.harmony?.[x.i];let c=Math.abs(n-target)*.8+Math.max(0,Math.abs(d)-(quiet?4:7))*2+(d===0?.65:0)+(h&&!h.notes.has(n%12)?x.r.beats>=1?2:.3:0);if(exact)c+=Math.abs(n-exact.n)*8;if(c<cost){cost=c;best=n;}}x.m.notes[x.i]=best;prev=best;if(exact){x.r.hook21=true;x.r.lyricalVelocity=4;}}
+ }
+ for(const m of queue)m.themeTargets=[{indices:m.notes.map((_,i)=>i),ref:m.notes.map((n,i)=>({n,beats:m.rhythm[i].beats})),weight:20}];
+}
+
 function narrative26(queue,bpm){
  const bars=new Map(),beat=60000/bpm;
  for(const m of queue)for(let i=0;i<m.notes.length;i++){const r=m.rhythm[i];if(!bars.has(r.measure))bars.set(r.measure,[]);bars.get(r.measure).push({m,i,r});}
@@ -1755,6 +1789,7 @@ async function precomposeSong(token){
  jointCompose18(composedSongQueue);
  safeRedesign25(composedSongQueue);
  narrative26(composedSongQueue,track14.bpm);
+ structuralMelody27(composedSongQueue);
  const last=composedSongQueue.at(-1);if(last){const i=last.notes.length-1,[lo,hi]=getRangeForMelody(last.inst);const ns=[];for(let n=lo;n<=hi;n++)if(n%12===last.key)ns.push(n);if(ns.length)last.notes[i]=ns.reduce((a,b)=>Math.abs(a-last.notes[i])<=Math.abs(b-last.notes[i])?a:b);last.rhythm[i].articulation=.99;last.end14=true;}
 
  for(let i=0;i<composedSongQueue.length;i++){
