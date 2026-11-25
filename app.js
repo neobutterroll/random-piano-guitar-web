@@ -978,10 +978,11 @@ function displayMelodyChords(m,index){
   const seen=new Set(),groups=[];
   for(const c of m.chordInfos){
    if(!c)continue;
-   const id=c.measure+':'+c.slot;
+   const id=c.measure+':'+c.slot+':'+(c.harmonicStep??'');
    if(seen.has(id))continue;seen.add(id);
    let group=groups.at(-1);
-   if(!group||group.id!==c.groupId){group={id:c.groupId,name:c.progressionName,items:[]};groups.push(group);}
+   const gid=c.progressionName==='独自和声'?'custom':c.groupId;
+   if(!group||group.id!==gid){group={id:gid,name:c.progressionName,items:[]};groups.push(group);}
    if(!group.items.length){
     const history=songHarmony?.groupHistory?.get(c.groupId)||[];
     const firstCurrent=c.measure+':'+c.slot;
@@ -1000,12 +1001,12 @@ function displayMelodyChords(m,index){
    // Short excerpts do not substantiate a named progression. Require at least
    // three distinct positions and most of the pattern (all four for a 4-chord phrase).
    const required=total<=4?Math.min(total,4):Math.max(4,Math.ceil(total*0.65));
-   const recognized=positions.size>=required;
+   const recognized=group.name!=='独自和声'&&positions.size>=required;
    if(!recognized)wrapper.classList.add('melody-progression-fragment');
-   title.textContent=(recognized?progressionWithDegrees(group.name,group.items):'和声のつながり：'+group.items.filter((c,i,a)=>i===0||c.progressionPosition!==a[i-1].progressionPosition).map(c=>c.degree).join(' → '))+(recognized?'（この枠の範囲）':'（進行名は未確定）');wrapper.append(title);
+   title.textContent=(recognized?progressionWithDegrees(group.name,group.items):'和声のつながり：'+group.items.filter((c,i,a)=>i===0||c.degree!==a[i-1].degree||c.name!==a[i-1].name).map(c=>c.degree).join(' → '))+(recognized?'（この枠の範囲）':'（進行名は未確定）');wrapper.append(title);
    const row=document.createElement('div');row.className='melody-progression-chords';
    for(const c of group.items){
-    const item=document.createElement('div');item.className='progression-item';item.dataset.harmonyId=c.measure+':'+c.slot;if(c.previousQuestion)item.classList.add('previous-question-chord');
+    const item=document.createElement('div');item.className='progression-item';item.dataset.harmonyId=c.measure+':'+c.slot+':'+(c.harmonicStep??'');if(c.previousQuestion)item.classList.add('previous-question-chord');
     const number=document.createElement('div');number.className='progression-bar';
     number.textContent=(c.previousQuestion?'前問・':'')+(c.measure+1)+'小節'+(c.slot?' / '+(c.slot+1)+'番目':' / 1番目');
     const name=document.createElement('div');name.className='progression-chord';name.textContent=c.name;
@@ -1016,20 +1017,20 @@ function displayMelodyChords(m,index){
   }
   el.answer.append(panel);
  }
- const activeId=active.measure+':'+active.slot;
+ const activeId=active.measure+':'+active.slot+':'+(active.harmonicStep??'');
  for(const item of panel.querySelectorAll('.progression-item'))item.classList.toggle('progression-active',item.dataset.harmonyId===activeId);
 }
 function displayMelodyQuestion(m){
  setSequenceDisplay(`${D.NAMES[m.key]} / ${m.scaleName}`,m.notes,-1,m.inst,`メロディ再生準備 ${m.notes.length}音`);
  // The full chord progression is visible as soon as the question is generated.
- if(m.harmony)displayMelodyChords(m,0);
+ if(m.harmony)try{displayMelodyChords(m,0);}catch(e){console.warn("Harmony display",e);}
 }
 function updateMelodyQuestion(m,i,label){
  const notes=el.answer.querySelectorAll('.sequence-notes .melody-note, .sequence-notes .active-melody-note');
  notes.forEach((node,j)=>node.className=j===i?'active-melody-note':'melody-note');
  const sec=m.rhythm?.[i]?songSectionAt(m.rhythm[i].measure):null;
  el.status.textContent=`${track14?`第${track14.id}曲 / ${Math.round(track14.bpm)} BPM / `:''}${sec&&musicGoal()==='song'?sec.name+'・'+personalityAt(m.rhythm[i].measure).name+' / ':''}メロディ再生中 ${i+1}/${m.notes.length}${label}`;
- if(m.harmony)displayMelodyChords(m,i);
+ if(m.harmony)try{displayMelodyChords(m,i);}catch(e){console.warn("Harmony display",e);}
 }
 function accompanimentStyle(section){
   const mode=el.melodyAccompStyle?.value||'auto';
@@ -1662,6 +1663,42 @@ function chorusFirst22(queue){
  for(const m of queue)m.themeTargets=[{indices:m.notes.map((_,i)=>i),ref:m.notes.map((n,i)=>({n,beats:m.rhythm[i].beats})),weight:12}];
 }
 
+function redesignAroundChorus25(queue){
+ const sections=[],bars=new Map();let current;
+ for(const m of queue)for(let i=0;i<m.notes.length;i++){const r=m.rhythm[i],s=songSectionAt(r.measure),start=r.measure-s.offset,x={m,i,r};if(!current||current.start!==start){current={start,name:s.name,rows:[]};sections.push(current);}current.rows.push(x);if(!bars.has(r.measure))bars.set(r.measure,[]);bars.get(r.measure).push(x);}
+ const chorus=sections.find(s=>s.name==='サビ');if(!chorus)return;
+ const quiet=['dream','floating','meditative','wistful'].includes(track14.emotionName18)||track14.person.range<.9;
+ const signature=chorus.rows.map(x=>x.r.beats),sorted=signature.slice().sort((a,b)=>a-b),median=sorted[Math.floor(sorted.length/2)]||1;
+ // Redistribute existing note durations inside each bar, preserving its length and note count.
+ for(const s of sections){const next=sections[sections.indexOf(s)+1];if(s.name==='サビ')continue;
+ const measures=[...new Set(s.rows.map(x=>x.r.measure))];for(const [j,b] of measures.entries()){const segments=[];for(const x of bars.get(b)){const id=x.m.harmony?.[x.i]?.harmonicStep??'none';if(segments.at(-1)?.id!==id)segments.push({id,rows:[]});segments.at(-1).rows.push(x);}for(const {rows} of segments){const n=rows.length;if(n<2||rows.some(x=>x.r.rest))continue;const total=rows.reduce((a,x)=>a+x.r.beats,0),start=rows[0].r.beatPosition;
+ const u=j/Math.max(1,measures.length-1),approach=next?.name==='サビ'?u:0;
+ const weights=rows.map((x,k)=>{let w=x.r.beats;const ref=signature[Math.round(k/Math.max(1,n-1)*(signature.length-1))];if(s.name==='イントロ')w=.65*w+.35*ref;else if(s.name==='Bメロ')w=w*(1-.35*approach)+median*.35*approach;else if(s.name==='アウトロ')w*=k===n-1?1.8: .9;else w*=k===0||k===n-1?1.25:.9;if(approach>.7&&k===n-1)w*=quiet?1.3:1.8;return w;});
+ const units=Math.round(total*4);if(units<n||Math.abs(units/4-total)>1e-6)continue;let pos=0,acc=0,sum=weights.reduce((a,b)=>a+b,0);rows.forEach((x,k)=>{acc+=weights[k];const end=k===n-1?units:Math.max(pos+1,Math.min(units-(n-k-1),Math.round(acc/sum*units)));x.r.beatPosition=start+pos/4;x.r.beats=(end-pos)/4;pos=end;});}}}
+ // Chord path search anchored at each chorus entrance; chorus chords remain intact.
+ let previous=null,serial=2300000;
+ for(let si=0;si<sections.length;si++){const s=sections[si],next=sections[si+1];if(s.name==='サビ'){previous=s.rows.at(-1).m.harmony?.[s.rows.at(-1).i]||null;continue;}
+ const groups=[];for(const x of s.rows){const h=x.m.harmony?.[x.i];if(!h)continue;const id=x.r.measure+':'+h.slot;if(groups.at(-1)?.id!==id)groups.push({id,rows:[]});groups.at(-1).rows.push(x);}if(!groups.length){previous=null;continue;}
+ const target=next?.name==='サビ'?next.rows[0].m.harmony?.[next.rows[0].i]:null;
+ let beam=[{cost:0,last:previous,path:[]}];for(let j=0;j<groups.length;j++){const rows=groups[j].rows,{m,r}=rows[0],key=m.key,scale=D.SCALES[m.scaleName],pcs=scale.map(v=>(v+key)%12),old=m.harmony[rows[0].i],pool=[old];for(let d=0;d<pcs.length;d++)for(const q of ['','m','dim','aug','sus4','maj7','m7','7','m7b5']){const ns=CHORD_INTERVALS[q].map(v=>(v+pcs[d])%12);if(ns.every(v=>pcs.includes(v)))pool.push({root:pcs[d],degree:d,quality:q,pcs:ns});}
+ const u=j/Math.max(1,groups.length-1),out=[];for(const state of beam)for(const c of pool){let cost=state.cost+(state.last?voiceLeadingCost(state.last,c)*.45:0);cost+=rows.reduce((a,x)=>a+(c.pcs.includes(x.m.notes[x.i]%12)?0:(x.r.beatPosition===0?2.4:1)*x.r.beats),0);cost+=c.root===old.root?0:.35;cost+=['dim','aug'].includes(c.quality)?(quiet?2:.6):0;if(target){const distance=voiceLeadingCost(c,target);cost+=distance*(quiet?.12:.06)*u;if(j===groups.length-1){cost+=distance*.65;const rel=(c.root-target.root+12)%12;if(!quiet&&rel===7)cost-=2;if(c.root===target.root&&!quiet)cost+=1.5;}}if(s.name==='アウトロ'&&j===groups.length-1)cost+=c.root===key?-5:5;out.push({cost,last:c,path:[...state.path,c]});}out.sort((a,b)=>a.cost-b.cost);beam=out.slice(0,6);}
+ const path=beam[0]?.path;if(!path)continue;groups.forEach((g,j)=>{const c=path[j],id=++serial;for(const x of g.rows){const old=x.m.harmony[x.i],ch={...c,notes:new Set(c.pcs),inversion:0,measure:x.r.measure,slot:old.slot,harmonicStep:id,groupId:id,progressionName:'独自和声',progressionPosition:1,progressionLength:2};x.m.harmony[x.i]=ch;x.m.chordInfos[x.i]=chordInfo(ch,x.m.key,x.m.scaleName,x.r.measure);}});previous=path.at(-1);}
+ for(const m of queue)m.themeTargets=[{indices:m.notes.map((_,i)=>i),ref:m.notes.map((n,i)=>({n,beats:m.rhythm[i].beats})),weight:12}];
+}
+
+
+function refreshHarmonyDisplay25(queue){
+ for(const m of queue){if(!m.harmony)continue;m.chordInfos=m.harmony.map((h,i)=>chordInfo(h,m.key,m.scaleName,m.rhythm[i].measure));}
+}
+function safeRedesign25(queue){
+ const saved=queue.map(m=>({rhythm:m.rhythm.map(r=>({...r})),harmony:m.harmony?.slice(),chordInfos:m.chordInfos?.slice(),themeTargets:m.themeTargets}));
+ try{redesignAroundChorus25(queue);refreshHarmonyDisplay25(queue);
+ for(const [j,m] of queue.entries()){if(m.rhythm.length!==m.notes.length||m.rhythm.some(r=>!Number.isFinite(r.beats)||r.beats<=0||!Number.isFinite(r.beatPosition)))throw Error('invalid rhythm');
+ const sum=a=>a.reduce((n,r)=>n+r.beats+(r.rest||0),0);if(Math.abs(sum(m.rhythm)-sum(saved[j].rhythm))>1e-6)throw Error('duration changed');
+ if(m.harmony&&(m.harmony.length!==m.notes.length||m.harmony.some(h=>!h||!Array.isArray(h.pcs)||!h.pcs.length||!(h.notes instanceof Set))))throw Error('invalid harmony');}
+ }catch(e){queue.forEach((m,j)=>Object.assign(m,saved[j]));console.warn('V25 redesign fallback',e);}
+}
+
 async function precomposeSong(token){
  if(musicGoal()!=='song'||el.melodyRhythm?.value!=='musical')return;
  const startingBar=songRhythmCarry?.bar??songMeasure;
@@ -1691,6 +1728,7 @@ async function precomposeSong(token){
  sectionThemesV16(composedSongQueue);
  chorusFirst22(composedSongQueue);
  jointCompose18(composedSongQueue);
+ safeRedesign25(composedSongQueue);
  const last=composedSongQueue.at(-1);if(last){const i=last.notes.length-1,[lo,hi]=getRangeForMelody(last.inst);const ns=[];for(let n=lo;n<=hi;n++)if(n%12===last.key)ns.push(n);if(ns.length)last.notes[i]=ns.reduce((a,b)=>Math.abs(a-last.notes[i])<=Math.abs(b-last.notes[i])?a:b);last.rhythm[i].articulation=.99;last.end14=true;}
 
  for(let i=0;i<composedSongQueue.length;i++){
