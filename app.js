@@ -1788,31 +1788,6 @@ function clarifyMelody28(queue,bpm){
  for(const m of queue)m.themeTargets=[{indices:m.notes.map((_,i)=>i),ref:m.notes.map((n,i)=>({n,beats:m.rhythm[i].beats})),weight:24}];
 }
 
-// V29: compose a sparse thematic phrase before choosing its harmony.
-function melodyFirst29(queue,bpm){
- const bars=new Map();for(const m of queue)for(let i=0;i<m.notes.length;i++){const r=m.rhythm[i];if(!bars.has(r.measure))bars.set(r.measure,[]);bars.get(r.measure).push({m,i,r});}
- const entries=[...bars],themes=new Map(),quiet=track14.person.range<.9;let previous=null;
- const pitches=x=>{const [lo,hi]=getRangeForMelody(x.m.inst);return Array.from({length:hi-lo+1},(_,i)=>lo+i).filter(n=>D.SCALES[x.m.scaleName].includes((n-x.m.key+120)%12));};
- for(let a=0;a<entries.length;){const sec=songSectionAt(entries[a][0]),count=Math.min(4,sec.bars-sec.offset,entries.length-a),chunk=entries.slice(a,a+count);a+=count;
- const rows=chunk.flatMap(e=>e[1]);const family=sec.name==='イントロ'?'Aメロ':sec.name==='アウトロ'?'Aメロ':sec.name;const ref=themes.get(family);let best=null;
- for(let k=0;k<48;k++){
- const chosen=[];for(let b=0;b<chunk.length;b++){const rr=chunk[b][1],meter=METER_BEATS[rr[0].r.meter]||4;const pattern=ref&&k<24?ref.pattern[b%ref.pattern.length]:pick([[0,.5],[0,.25,.65],[.25,.65],[0,.75],[0,.33,.66]]);const targets=(b===count-1?[0,.5]:pattern).slice(0,quiet||bpm>150?2:3);for(const t of targets){const x=rr.reduce((u,v)=>Math.abs(u.r.beatPosition/meter-t)<=Math.abs(v.r.beatPosition/meter-t)?u:v);if(!chosen.includes(x))chosen.push(x);}}
- if(a===entries.length&&!chosen.includes(rows.at(-1)))chosen.push(rows.at(-1));if(!chosen.length)continue;
- const first=chosen[0],p0=pitches(first);if(!p0.length)continue;const mid=(p0[0]+p0.at(-1))/2,center=previous===null?mid:Math.max(mid-7,Math.min(mid+7,previous));let ns=[],score=0;
- const contour=pick([[0,2,4,3,5,2,1,0],[0,-2,1,3,2,5,3,0],[0,3,1,4,6,4,2,0],[0,1,3,2,4,3,1,-1]]);
- for(let j=0;j<chosen.length;j++){const x=chosen[j],p=pitches(x);if(!p.length){ns=[];break;}const u=j/Math.max(1,chosen.length-1),prev=ns.at(-1)??previous??center;let target=center+contour[Math.round(u*7)]*(quiet?1:1.6)+(sec.name==='サビ'&&!quiet?3:0);if(ref&&k<24)target=center+ref.intervals[Math.round(u*(ref.intervals.length-1))];if(j===chosen.length-1&&a===entries.length)target=p.filter(n=>n%12===x.m.key).sort((a,b)=>Math.abs(a-prev)-Math.abs(b-prev))[0]??target;
- let win=p[0],cost=Infinity;for(const n of p){const d=n-prev;let c=Math.abs(n-target)*.65+Math.max(0,Math.abs(d)-5)*1.8+(d===0&&j>0?2.5:0);if(j===chosen.length-1){const degree=(n-x.m.key+120)%12;c+=([0,3,4,7].includes(degree)?0:1.5);if(a===entries.length&&degree!==0)c+=12;}if(c<cost){cost=c;win=n;}}ns.push(win);score+=cost;}
- if(ns.length!==chosen.length)continue;const ds=ns.slice(1).map((n,i)=>n-ns[i]),span=Math.max(...ns)-Math.min(...ns);score=score/ns.length+Math.abs(span-(quiet?5:9))*.25+ds.filter(d=>d===0).length*.7+ds.filter((d,i)=>i>0&&Math.abs(d)>4&&Math.sign(d)===Math.sign(ds[i-1])).length*.9;score+=Math.random()*.25;if(!best||score<best.score)best={chosen,ns,score};}
- if(!best)continue;const selected=new Map(best.chosen.map((x,j)=>[x,best.ns[j]]));for(const x of rows){x.r.silent26=!selected.has(x);x.r.breath26=x.r.silent26;x.r.hook21=true;if(selected.has(x)){x.m.notes[x.i]=selected.get(x);x.r.articulation=.94;x.r.lyricalVelocity=3;previous=selected.get(x);}}
- if(!ref)themes.set(family,{intervals:best.ns.map(n=>n-best.ns[0]),pattern:chunk.map(e=>best.chosen.filter(x=>e[1].includes(x)).map(x=>x.r.beatPosition/(METER_BEATS[x.r.meter]||4)))});
- }
- // Fit a chord path to audible notes only, keeping the existing timing grid.
- let beam=[{cost:0,last:null,path:[]}],groups=[];for(const [bar,rows] of entries){for(const x of rows){const h=x.m.harmony?.[x.i];if(!h)continue;const id=bar+':'+h.slot;if(groups.at(-1)?.id!==id)groups.push({id,rows:[]});groups.at(-1).rows.push(x);}}
- for(let j=0;j<groups.length;j++){const rows=groups[j].rows,{m}=rows[0],pcs=D.SCALES[m.scaleName].map(n=>(n+m.key)%12),pool=[m.harmony[rows[0].i]];for(let d=0;d<pcs.length;d++)for(const quality of ['','m','dim','sus4','maj7','m7','7']){const ns=CHORD_INTERVALS[quality].map(n=>(n+pcs[d])%12);if(ns.every(n=>pcs.includes(n)))pool.push({root:pcs[d],degree:d,quality,pcs:ns});}const next=[];for(const q of beam)for(const c of pool){let cost=q.cost+voiceLeadingCost(q.last,c)*.5+(q.last&&q.last.root!==c.root?.35:0);for(const x of rows)if(!x.r.silent26&&!c.pcs.includes(x.m.notes[x.i]%12))cost+=1.5+x.r.beats; if(j===groups.length-1&&c.root!==m.key)cost+=8;next.push({cost,last:c,path:[...q.path,c]});}beam=next.sort((a,b)=>a.cost-b.cost).slice(0,6);}
- groups.forEach((g,j)=>{const c=beam[0].path[j];for(const x of g.rows){const old=x.m.harmony[x.i];x.m.harmony[x.i]={...c,degreeLabel:undefined,notes:new Set(c.pcs),inversion:0,measure:x.r.measure,slot:old.slot,harmonicStep:2900000+j,groupId:2900000+j,progressionName:'旋律主導和声',progressionPosition:1,progressionLength:1};}});refreshHarmonyDisplay25(queue);
- for(const m of queue)m.themeTargets=[{indices:m.notes.map((_,i)=>i),ref:m.notes.map((n,i)=>({n,beats:m.rhythm[i].beats})),weight:24}];
-}
-
 async function precomposeSong(token){
  if(musicGoal()!=='song'||el.melodyRhythm?.value!=='musical')return;
  const startingBar=songRhythmCarry?.bar??songMeasure;
@@ -1833,7 +1808,19 @@ async function precomposeSong(token){
   const after=songRhythmCarry?.bar??songMeasure;
   if(after<=bar&&i>850)break;
  }
- melodyFirst29(composedSongQueue,track14.bpm);
+ const rhythm17=composedSongQueue.map(m=>m.rhythm.map(r=>({...r})));
+ rebuildLongThemesV12(composedSongQueue);
+ composedSongQueue.forEach((m,i)=>{m.rhythm=rhythm17[i];});
+ hierarchicalThemesV13(composedSongQueue);
+ varyNoteCountsV13(composedSongQueue);
+ lyricalThemesV15(composedSongQueue);
+ sectionThemesV16(composedSongQueue);
+ chorusFirst22(composedSongQueue);
+ jointCompose18(composedSongQueue);
+ safeRedesign25(composedSongQueue);
+ narrative26(composedSongQueue,track14.bpm);
+ structuralMelody27(composedSongQueue);
+ clarifyMelody28(composedSongQueue,track14.bpm);
  const last=composedSongQueue.at(-1);if(last){const i=last.notes.length-1,[lo,hi]=getRangeForMelody(last.inst);const ns=[];for(let n=lo;n<=hi;n++)if(n%12===last.key)ns.push(n);if(ns.length)last.notes[i]=ns.reduce((a,b)=>Math.abs(a-last.notes[i])<=Math.abs(b-last.notes[i])?a:b);last.rhythm[i].articulation=.99;last.end14=true;}
 
  for(let i=0;i<composedSongQueue.length;i++){
