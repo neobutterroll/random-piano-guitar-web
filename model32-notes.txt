@@ -1,0 +1,1 @@
+Essen Folksong, music21 corpus; non-commercial use only. {'tunes': 8497, 'events': 441015}. ABC subset; joint interval/duration/gap counts, two preceding intervals; no source scores bundled. No game music training. See https://github.com/cuthbertLab/music21/blob/master/music21/corpus/essenFolksong/license.txt
