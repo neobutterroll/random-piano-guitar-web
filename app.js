@@ -1726,7 +1726,7 @@ function structuralMelody27(queue){
  const shapes=[[0,2,1,4,3,6,4,0],[0,-2,1,2,0,4,2,-1],[0,1,3,1,4,2,5,0],[0,3,2,-1,1,4,3,0]];
  let prev=null,primary=null;
  const pool=x=>{const [lo,hi]=getRangeForMelody(x.m.inst);return Array.from({length:hi-lo+1},(_,i)=>lo+i).filter(n=>D.SCALES[x.m.scaleName].includes((n-x.m.key+120)%12));};
- for(let a=0;a<entries.length;){await new Promise(r=>setTimeout(r,0));if(token!==runToken)return;const sec=songSectionAt(entries[a][0]);const count=Math.min(8,sec.bars-sec.offset,entries.length-a), chunk=entries.slice(a,a+count);a+=count;
+ for(let a=0;a<entries.length;){const sec=songSectionAt(entries[a][0]);const count=Math.min(8,sec.bars-sec.offset,entries.length-a), chunk=entries.slice(a,a+count);a+=count;
  const rows=chunk.flatMap(x=>x[1]);if(!rows.length)continue;
  if(!track14.game&&sec.name==='サビ'){prev=rows.at(-1).m.notes[rows.at(-1).i];continue;}
  const center=rows.reduce((v,x)=>v+x.m.notes[x.i],0)/rows.length;
