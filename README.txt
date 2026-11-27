@@ -1,0 +1,1 @@
+Ver.55: replace app.js only. Based on Ver.54. Section lengths 2–8 bars, no duration target; theme scale filtering respects fixed selections; common-tone substitutions and limited borrowed chords; motif rhythm/pitch scoring. Existing models retained. Syntax checked; browser/audio not tested.
